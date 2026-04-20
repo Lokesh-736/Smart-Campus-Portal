@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="min-h-screen bg-slate-50 p-10">
+
+<div class="max-w-5xl mx-auto">
+
+    <!-- HEADER -->
+    <div class="bg-[#0B1F3A] text-white rounded-xl p-8 shadow-md">
+        <h1 class="text-3xl font-semibold">
+            Welcome, {{ user.username }}
+        </h1>
+        <p class="text-sm opacity-80 mt-1">
+            Academic Profile Overview
+        </p>
+    </div>
+
+    <!-- GRID -->
+    <div class="grid md:grid-cols-3 gap-6 mt-6">
+
+        <!-- AVATAR -->
+        <div class="bg-white rounded-xl shadow-sm border p-6 text-center">
+            <div class="w-24 h-24 mx-auto rounded-full bg-[#0B1F3A] text-white flex items-center justify-center text-3xl font-bold">
+                {{ user.username[0]|upper }}
+            </div>
+
+            <h2 class="mt-4 text-lg font-semibold text-[#0B1F3A]">
+                {{ user.username }}
+            </h2>
+
+            <p class="text-sm text-slate-500 capitalize">
+                {{ user.role }}
+            </p>
+        </div>
+
+        <!-- INFO -->
+        <div class="bg-white rounded-xl shadow-sm border p-6 md:col-span-2">
+
+            <h3 class="text-lg font-semibold text-[#0B1F3A] mb-4">
+                Account Details
+            </h3>
+
+            <div class="space-y-4 text-sm">
+
+                <div class="flex justify-between border-b pb-2">
+                    <span class="text-slate-500">Username</span>
+                    <span class="font-medium">{{ user.username }}</span>
+                </div>
+
+                <div class="flex justify-between border-b pb-2">
+                    <span class="text-slate-500">Role</span>
+                    <span class="font-medium capitalize">{{ user.role }}</span>
+                </div>
+
+                <div class="flex justify-between border-b pb-2">
+                    <span class="text-slate-500">User ID</span>
+                    <span class="font-medium">#{{ user.id }}</span>
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- ACTIONS -->
+    <div class="mt-6 flex gap-4">
+
+        <a href="/student/home"
+           class="bg-[#0B1F3A] text-white px-6 py-3 rounded-md shadow hover:bg-[#142f55] transition">
+            Dashboard
+        </a>
+
+        <a href="/logout"
+           class="bg-white border px-6 py-3 rounded-md text-slate-700 hover:bg-slate-100 transition">
+            Logout
+        </a>
+
+    </div>
+
+</div>
+</div>
+
+{% endblock %}

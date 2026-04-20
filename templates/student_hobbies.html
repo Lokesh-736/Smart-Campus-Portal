@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="min-h-screen bg-slate-50 px-6 py-10">
+
+    <div class="max-w-6xl mx-auto">
+
+        <!-- HEADER -->
+        <div class="bg-white border border-slate-200 rounded-lg shadow-sm p-6 mb-8">
+
+            <div class="flex justify-between items-center">
+
+                <div>
+                    <h1 class="text-2xl font-semibold text-[#0B1F3A] tracking-tight">
+                        Student Interest Analytics
+                    </h1>
+                    <p class="text-sm text-slate-500 mt-1">
+                        AI-driven insights into student preferences and activities
+                    </p>
+                </div>
+
+                <div class="text-sm font-medium text-slate-600">
+                    {{ student_hobbies|length }} Records
+                </div>
+
+            </div>
+
+            <!-- GOLD ACCENT -->
+            <div class="mt-4 h-1 w-16 bg-[#C8A951] rounded"></div>
+
+        </div>
+
+        <!-- TABLE -->
+        <div class="bg-white border border-slate-200 rounded-lg shadow-sm overflow-hidden">
+
+            {% if student_hobbies and student_hobbies|length > 0 %}
+
+            <table class="w-full text-sm">
+
+                <thead class="bg-[#0B1F3A] text-white">
+                    <tr>
+                        <th class="px-6 py-4 text-left font-medium tracking-wide">Student Name</th>
+                        <th class="px-6 py-4 text-left font-medium tracking-wide">Interest Area</th>
+                    </tr>
+                </thead>
+
+                <tbody class="divide-y divide-slate-200">
+
+                    {% for sh in student_hobbies %}
+                    <tr class="hover:bg-slate-50 transition duration-150">
+
+                        <td class="px-6 py-4 font-semibold text-[#0B1F3A]">
+                            {{ sh["student_name"] }}
+                        </td>
+
+                        <td class="px-6 py-4">
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold
+                                bg-[#C8A951]/10 text-[#0B1F3A]">
+                                {{ sh["hobby"] }}
+                            </span>
+                        </td>
+
+                    </tr>
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+            {% else %}
+
+            <!-- EMPTY STATE -->
+            <div class="p-12 text-center">
+                <h2 class="text-lg font-semibold text-[#0B1F3A]">
+                    No Student Data Available
+                </h2>
+                <p class="text-sm text-slate-500 mt-2">
+                    Student interests will appear here once collected.
+                </p>
+            </div>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Smart Campus</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-slate-100 flex">
+
+
+<aside class="w-64 bg-white h-screen shadow-xl fixed flex flex-col justify-between border-r">
+
+<div>
+
+    
+    <div class="p-6 border-b flex items-center space-x-3">
+        <div class="w-10 h-10 bg-blue-600 text-white flex items-center justify-center rounded-lg font-bold">
+            SC
+        </div>
+        <div>
+            <h1 class="text-lg font-bold text-slate-800">Smart Campus</h1>
+            <p class="text-xs text-slate-400">Portal</p>
+        </div>
+    </div>
+
+    <!-- MENU -->
+   <nav class="p-4 space-y-1 text-slate-600">
+
+    <p class="text-xs text-slate-400 uppercase mb-3 tracking-wider">
+        Main Menu
+    </p>
+
+    <!-- DASHBOARD -->
+    {% if session.get("role") == "student" %}
+    <a href="/student_dashboard" class="block px-4 py-2 rounded-lg hover:bg-slate-100">
+        Dashboard
+    </a>
+    {% endif %}
+
+    {% if session.get("role") == "teacher" %}
+    <a href="/teacher_dashboard" class="block px-4 py-2 rounded-lg hover:bg-slate-100">
+        Dashboard
+    </a>
+    {% endif %}
+
+    <!-- STUDENTS -->
+    <a href="/students" class="block px-4 py-2 rounded-lg hover:bg-slate-100">
+        Students
+    </a>
+
+    <!-- TEACHERS -->
+    <a href="/teachers" class="block px-4 py-2 rounded-lg hover:bg-slate-100">
+        Teachers
+    </a>
+
+    <!-- SUBJECTS -->
+    <a href="/subjects" class="block px-4 py-2 rounded-lg hover:bg-slate-100">
+        Subjects
+    </a>
+
+    <!-- NOTES -->
+    <a href="/notes" class="block px-4 py-2 rounded-lg hover:bg-slate-100">
+        Notes
+    </a>
+
+    <!-- SCHEDULES -->
+    <a href="/schedules" class="block px-4 py-2 rounded-lg hover:bg-slate-100">
+        Schedules
+    </a>
+
+    <!-- HOBBIES -->
+    <a href="/student_hobbies" class="block px-4 py-2 rounded-lg hover:bg-slate-100">
+        Hobbies
+    </a>
+
+    <!-- TEACHER LEAVE -->
+    <a href="/teacher_leave" class="block px-4 py-2 rounded-lg hover:bg-slate-100">
+        Teacher Leave
+    </a>
+
+    <!-- PROFILE -->
+    <a href="/profile" class="block px-4 py-2 rounded-lg hover:bg-slate-100">
+        Profile
+    </a>
+
+    <!-- LOGOUT -->
+    <a href="/logout" class="block px-4 py-2 rounded-lg text-red-500 hover:bg-red-50 mt-4">
+        Logout
+    </a>
+
+</nav>
+
+</div>
+
+
+<div class="p-4 border-t text-sm text-slate-500">
+    <span class="text-green-500 font-bold">●</span>
+    System <span class="text-green-600">Online</span>
+</div>
+
+</aside>
+
+
+<!-- MAIN CONTENT -->
+<div class="ml-64 flex-1 overflow-y-auto p-6">
+
+{% block content %}{% endblock %}
+
+</div>
+
+</body>
+</html>

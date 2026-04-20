@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="min-h-screen bg-slate-50 px-6 py-10">
+
+    <div class="max-w-7xl mx-auto">
+
+        <!-- HEADER SECTION -->
+        <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-6 mb-8">
+
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+
+                <div>
+                    <h1 class="text-3xl font-semibold text-[#0B1F3A] tracking-tight">
+                        Faculty Directory
+                    </h1>
+                    <p class="text-sm text-slate-500 mt-1">
+                        Centralized registry of all academic staff members
+                    </p>
+                </div>
+
+                <!-- STAT CARD -->
+                <div class="bg-slate-100 px-5 py-3 rounded-lg text-center">
+                    <p class="text-xs text-slate-500 uppercase tracking-wide">
+                        Total Faculty
+                    </p>
+                    <p class="text-xl font-semibold text-[#0B1F3A]">
+                        {{ teachers|length }}
+                    </p>
+                </div>
+
+            </div>
+
+            <!-- ACCENT LINE -->
+            <div class="mt-5 h-[2px] w-full bg-gradient-to-r from-[#C8A951] via-[#0B1F3A] to-transparent"></div>
+
+        </div>
+
+        <!-- TABLE CONTAINER -->
+        <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+
+            {% if teachers and teachers|length > 0 %}
+
+            <div class="overflow-x-auto">
+
+                <table class="w-full text-sm">
+
+                    <!-- TABLE HEADER -->
+                    <thead class="bg-[#0B1F3A] text-white">
+                        <tr>
+                            <th class="px-6 py-4 text-left font-medium tracking-wide">Faculty ID</th>
+                            <th class="px-6 py-4 text-left font-medium tracking-wide">Faculty Name</th>
+                            <th class="px-6 py-4 text-left font-medium tracking-wide">Role</th>
+                        </tr>
+                    </thead>
+
+                    <!-- TABLE BODY -->
+                    <tbody class="divide-y divide-slate-200">
+
+                        {% for teacher in teachers %}
+                        <tr class="group hover:bg-slate-50 transition duration-150">
+
+                            <!-- ID -->
+                            <td class="px-6 py-4 text-slate-600 font-medium">
+                                #{{ teacher["id"] }}
+                            </td>
+
+                            <!-- NAME -->
+                            <td class="px-6 py-4 flex items-center gap-3">
+
+                                <!-- Avatar -->
+                                <div class="w-9 h-9 rounded-full bg-[#0B1F3A] text-white flex items-center justify-center text-sm font-semibold">
+                                    {{ teacher["username"][0]|upper }}
+                                </div>
+
+                                <span class="font-semibold text-[#0B1F3A]">
+                                    {{ teacher["username"] }}
+                                </span>
+
+                            </td>
+
+                            <!-- ROLE -->
+                            <td class="px-6 py-4">
+
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold
+                                    bg-[#C8A951]/10 text-[#0B1F3A] group-hover:bg-[#C8A951]/20 transition">
+                                    {{ teacher["role"] }}
+                                </span>
+
+                            </td>
+
+                        </tr>
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+            {% else %}
+
+            <!-- EMPTY STATE -->
+            <div class="p-14 text-center">
+
+                <div class="text-4xl mb-3">👨‍🏫</div>
+
+                <h2 class="text-lg font-semibold text-[#0B1F3A]">
+                    No Faculty Records Found
+                </h2>
+
+                <p class="text-sm text-slate-500 mt-2">
+                    Faculty members will appear here once added to the system.
+                </p>
+
+            </div>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

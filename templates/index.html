@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<section class="relative flex flex-col md:flex-row items-center justify-between px-10 py-20 bg-blue-50 overflow-hidden">
+
+    <div class="max-w-xl z-10">
+
+        <h4 class="text-blue-600 font-bold uppercase tracking-widest mb-4">
+            Smarter Schedules, Smarter Students
+        </h4>
+
+        <h1 class="text-6xl font-extrabold text-gray-900 leading-tight mb-6">
+            Smart Campus Portal <br>
+            <span class="text-blue-600">With AI Assistant</span>
+        </h1>
+
+        <p class="text-gray-600 text-lg mb-8">
+            Improving academic efficiency and engagement through intelligent automation and personalized assistance.
+        </p>
+
+        <div class="flex space-x-4">
+
+            <a href="/login"
+               class="bg-blue-600 text-white px-8 py-3 rounded-md font-bold hover:bg-blue-700 transition shadow-lg">
+                Login
+            </a>
+
+            <a href="/signup"
+               class="border-2 border-gray-800 px-8 py-3 rounded-md font-bold hover:bg-gray-800 hover:text-white transition">
+                Create Account
+            </a>
+
+        </div>
+
+    </div>
+
+</section>
+
+<!-- FEATURES -->
+<section class="py-20 px-10">
+
+    <div class="text-center mb-16">
+        <h2 class="text-4xl font-black text-gray-900">
+            Explore Our Portal
+        </h2>
+        <p class="text-gray-500 mt-2">
+            Features coming soon
+        </p>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 max-w-7xl mx-auto">
+
+        <div class="bg-white p-8 rounded-2xl shadow-sm text-center border-b-4 border-blue-500">
+            <h3 class="font-bold text-xl">Students</h3>
+            <p class="text-gray-500 mt-2 text-sm">Module coming soon</p>
+        </div>
+
+        <div class="bg-white p-8 rounded-2xl shadow-sm text-center border-b-4 border-indigo-500">
+            <h3 class="font-bold text-xl">Schedules</h3>
+            <p class="text-gray-500 mt-2 text-sm">Module coming soon</p>
+        </div>
+
+        <div class="bg-white p-8 rounded-2xl shadow-sm text-center border-b-4 border-emerald-500">
+            <h3 class="font-bold text-xl">Notes</h3>
+            <p class="text-gray-500 mt-2 text-sm">Module coming soon</p>
+        </div>
+
+        <div class="bg-white p-8 rounded-2xl shadow-sm text-center border-b-4 border-rose-500">
+            <h3 class="font-bold text-xl">Teachers</h3>
+            <p class="text-gray-500 mt-2 text-sm">Module coming soon</p>
+        </div>
+
+    </div>
+
+</section>
+
+{% endblock %}

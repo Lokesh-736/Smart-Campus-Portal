@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="p-10 bg-slate-50 min-h-screen">
+
+<div class="max-w-6xl mx-auto">
+
+    <!-- HEADER -->
+    <div class="flex justify-between items-center mb-8 border-l-4 border-[#C8A951] pl-4">
+        <div>
+            <h1 class="text-3xl font-semibold text-[#0B1F3A]">
+                Digital Academic Library
+            </h1>
+            <p class="text-sm text-slate-500 mt-1">
+                Access and manage academic resources
+            </p>
+        </div>
+
+        <span class="text-sm text-slate-600 font-medium">
+            Total: {{ notes|length }}
+        </span>
+    </div>
+
+    <!-- UPLOAD -->
+    {% if session.get("role") == "teacher" %}
+    <div class="bg-white p-8 rounded-xl shadow-sm border mb-8">
+
+        <h2 class="text-lg font-semibold text-[#0B1F3A] mb-4">
+            Upload Study Material
+        </h2>
+
+        <form method="POST" action="/add_note" enctype="multipart/form-data"
+              class="grid md:grid-cols-3 gap-4">
+
+            <input name="subject" required
+                class="p-3 border rounded-lg focus:ring-2 focus:ring-[#C8A951]"
+                placeholder="Subject">
+
+            <input name="title" required
+                class="p-3 border rounded-lg focus:ring-2 focus:ring-[#C8A951]"
+                placeholder="Title">
+
+            <input type="file" name="file"
+                class="p-3 border rounded-lg bg-slate-50">
+
+            <button
+                class="md:col-span-3 bg-[#0B1F3A] text-white py-3 rounded-lg font-semibold hover:bg-[#142f55] transition">
+                Upload Document
+            </button>
+
+        </form>
+    </div>
+    {% endif %}
+
+    <!-- TABLE -->
+    <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
+
+        {% if notes and notes|length > 0 %}
+
+        <table class="w-full text-sm">
+
+            <thead class="bg-[#0B1F3A] text-white">
+                <tr>
+                    <th class="px-6 py-4">Subject</th>
+                    <th class="px-6 py-4">Title</th>
+                    <th class="px-6 py-4">Access</th>
+                </tr>
+            </thead>
+
+            <tbody class="divide-y">
+
+                {% for note in notes %}
+                <tr class="hover:bg-slate-50 transition">
+
+                    <td class="px-6 py-4 font-semibold text-[#0B1F3A]">
+                        {{ note["subject"] }}
+                    </td>
+
+                    <td class="px-6 py-4 text-slate-600">
+                        {{ note["title"] }}
+                    </td>
+
+                    <td class="px-6 py-4">
+                        {% if note["file_path"] %}
+                        <a href="/uploads/{{ note['file_path'] }}"
+                           class="bg-[#C8A951] text-white px-4 py-2 rounded-md text-xs font-semibold hover:opacity-90">
+                            Download
+                        </a>
+                        {% else %}
+                        <span class="text-slate-400">Unavailable</span>
+                        {% endif %}
+                    </td>
+
+                </tr>
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+        {% else %}
+        <div class="p-12 text-center text-slate-500">
+            No Study Materials Available
+        </div>
+        {% endif %}
+
+    </div>
+
+</div>
+</div>
+
+{% endblock %}

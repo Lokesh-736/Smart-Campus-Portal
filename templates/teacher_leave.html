@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="min-h-screen bg-slate-50 px-6 py-10">
+
+<div class="max-w-7xl mx-auto">
+
+    <!-- HEADER -->
+    <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-6 mb-8">
+
+        <div class="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+
+            <div>
+                <h1 class="text-3xl font-semibold text-[#0B1F3A]">
+                    Faculty Leave Management
+                </h1>
+                <p class="text-sm text-slate-500 mt-1">
+                    Real-time overview of faculty availability
+                </p>
+            </div>
+
+            <!-- STATS -->
+            <div class="bg-slate-100 px-5 py-3 rounded-lg text-center">
+                <p class="text-xs text-slate-500 uppercase">Total Records</p>
+                <p class="text-xl font-semibold text-[#0B1F3A]">
+                    {{ teacher_leave|length }}
+                </p>
+            </div>
+
+        </div>
+
+        <div class="mt-5 h-[2px] bg-gradient-to-r from-[#C8A951] via-[#0B1F3A] to-transparent"></div>
+
+    </div>
+
+    <!-- TABLE -->
+    <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+
+        {% if teacher_leave and teacher_leave|length > 0 %}
+
+        <table class="w-full text-sm">
+
+            <thead class="bg-[#0B1F3A] text-white">
+                <tr>
+                    <th class="px-6 py-4">Faculty</th>
+                    <th class="px-6 py-4">Department</th>
+                    <th class="px-6 py-4">Status</th>
+                </tr>
+            </thead>
+
+            <tbody class="divide-y">
+
+                {% for leave in teacher_leave %}
+                <tr class="hover:bg-slate-50 transition">
+
+                    <td class="px-6 py-4 flex items-center gap-3">
+
+                        <div class="w-9 h-9 rounded-full bg-[#0B1F3A] text-white flex items-center justify-center text-sm font-semibold">
+                            {{ leave["name"][0]|upper }}
+                        </div>
+
+                        <span class="font-semibold text-[#0B1F3A]">
+                            {{ leave["name"] }}
+                        </span>
+
+                    </td>
+
+                    <td class="px-6 py-4 text-slate-600">
+                        Science & IT
+                    </td>
+
+                    <td class="px-6 py-4">
+                        <span class="px-3 py-1 text-xs rounded-full font-semibold
+                            {% if leave['status']=='On Leave' %}
+                                bg-red-100 text-red-700
+                            {% else %}
+                                bg-emerald-100 text-emerald-700
+                            {% endif %}
+                        ">
+                            {{ leave["status"] }}
+                        </span>
+                    </td>
+
+                </tr>
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+        {% else %}
+
+        <div class="p-14 text-center">
+            <h2 class="text-lg font-semibold text-[#0B1F3A]">
+                No Leave Records Found
+            </h2>
+            <p class="text-sm text-slate-500 mt-2">
+                All faculty are currently available.
+            </p>
+        </div>
+
+        {% endif %}
+
+    </div>
+
+</div>
+</div>
+
+{% endblock %}

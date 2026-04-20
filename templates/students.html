@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="min-h-screen bg-slate-50 px-6 py-10">
+
+<div class="max-w-7xl mx-auto">
+
+    <!-- HEADER -->
+    <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-6 mb-8">
+
+        <div class="flex justify-between items-center">
+
+            <div>
+                <h1 class="text-3xl font-semibold text-[#0B1F3A]">
+                    Student Directory
+                </h1>
+                <p class="text-sm text-slate-500 mt-1">
+                    Registered students within the system
+                </p>
+            </div>
+
+            <div class="bg-slate-100 px-5 py-3 rounded-lg text-center">
+                <p class="text-xs text-slate-500 uppercase">Total Students</p>
+                <p class="text-xl font-semibold text-[#0B1F3A]">
+                    {{ students|length }}
+                </p>
+            </div>
+
+        </div>
+
+        <div class="mt-5 h-[2px] bg-gradient-to-r from-[#C8A951] via-[#0B1F3A] to-transparent"></div>
+
+    </div>
+
+    <!-- TABLE -->
+    <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+
+        {% if students and students|length > 0 %}
+
+        <table class="w-full text-sm">
+
+            <thead class="bg-[#0B1F3A] text-white">
+                <tr>
+                    <th class="px-6 py-4">ID</th>
+                    <th class="px-6 py-4">Student Name</th>
+                    <th class="px-6 py-4">Role</th>
+                </tr>
+            </thead>
+
+            <tbody class="divide-y">
+
+                {% for s in students %}
+                <tr class="hover:bg-slate-50 transition">
+
+                    <td class="px-6 py-4 text-slate-600">
+                        #{{ s["id"] }}
+                    </td>
+
+                    <td class="px-6 py-4 flex items-center gap-3">
+
+                        <div class="w-9 h-9 rounded-full bg-[#0B1F3A] text-white flex items-center justify-center text-sm font-semibold">
+                            {{ s["username"][0]|upper }}
+                        </div>
+
+                        <span class="font-semibold text-[#0B1F3A]">
+                            {{ s["username"] }}
+                        </span>
+
+                    </td>
+
+                    <td class="px-6 py-4">
+                        <span class="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700">
+                            Student
+                        </span>
+                    </td>
+
+                </tr>
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+
+        {% else %}
+
+        <div class="p-14 text-center">
+            <h2 class="text-lg font-semibold text-[#0B1F3A]">
+                No Students Found
+            </h2>
+            <p class="text-sm text-slate-500 mt-2">
+                Student records will appear here once registered.
+            </p>
+        </div>
+
+        {% endif %}
+
+    </div>
+
+</div>
+</div>
+
+{% endblock %}

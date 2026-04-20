@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+<meta charset="UTF-8">
+<title>Smart Campus - Student Dashboard</title>
+<script src="https://cdn.tailwindcss.com"></script>
+
+<style>
+
+:root {
+    --dark: #021024;
+    --primary: #052659;
+    --mid: #5483B3;
+    --light: #7DA0CA;
+    --soft: #C1E8FF;
+}
+
+.hero {
+    background: linear-gradient(rgba(2,16,36,0.8), rgba(2,16,36,0.8)),
+    url('https://images.unsplash.com/photo-1523050854058-8df90110c9f1');
+    background-size: cover;
+    background-position: center;
+}
+
+.card-hover:hover {
+    transform: translateY(-6px);
+    transition: 0.3s;
+}
+
+.glass {
+    background: rgba(255,255,255,0.7);
+    backdrop-filter: blur(10px);
+}
+
+</style>
+
+</head>
+
+<body class="bg-slate-100 flex">
+
+<!-- SIDEBAR -->
+<aside class="w-64 bg-white h-screen shadow-xl fixed flex flex-col justify-between border-r">
+
+<div>
+
+    <div class="p-6 border-b flex items-center space-x-3">
+        <div class="w-10 h-10 bg-blue-600 text-white flex items-center justify-center rounded-lg font-bold">
+            SC
+        </div>
+        <div>
+            <h1 class="text-lg font-bold text-slate-800">Smart Campus</h1>
+            <p class="text-xs text-slate-400">Student Portal</p>
+        </div>
+    </div>
+
+    <nav class="p-4 space-y-1 text-slate-600">
+        <p class="text-xs text-slate-400 uppercase mb-3 tracking-wider">Main Menu</p>
+
+        <a href="/student_dashboard" class="block px-4 py-2 rounded-lg bg-blue-50 text-blue-600 font-semibold">Dashboard</a>
+        <a href="/students" class="block px-4 py-2 rounded-lg hover:bg-slate-100">Students</a>
+        <a href="/teachers" class="block px-4 py-2 rounded-lg hover:bg-slate-100">Teachers</a>
+        <a href="/subjects" class="block px-4 py-2 rounded-lg hover:bg-slate-100">Subjects</a>
+        <a href="/notes" class="block px-4 py-2 rounded-lg hover:bg-slate-100">Notes</a>
+        <a href="/schedules" class="block px-4 py-2 rounded-lg hover:bg-slate-100">Schedules</a>
+        <a href="/hobbies" class="block px-4 py-2 rounded-lg hover:bg-slate-100">Hobbies</a>
+        <a href="/teacher_leave" class="block px-4 py-2 rounded-lg hover:bg-slate-100">Teacher Leave</a>
+
+        <a href="/logout" class="block px-4 py-2 rounded-lg text-red-500 hover:bg-red-50 mt-4">Logout</a>
+    </nav>
+
+</div>
+
+<div class="p-4 border-t text-sm text-slate-500">
+    <span class="text-green-500 font-bold">●</span>
+    AI Assistant <span class="text-green-600">Online</span>
+</div>
+
+</aside>
+
+<!-- MAIN -->
+<div class="ml-64 flex-1 dashboard-bg">
+
+<!-- NAVBAR -->
+<div class="bg-white px-8 py-4 flex justify-between items-center shadow-sm border-b">
+
+<div class="flex space-x-6 text-slate-500">
+    <a href="/" class="hover:text-blue-600">Home</a>
+    <a href="/student_dashboard" class="text-slate-800 font-semibold">Dashboard</a>
+</div>
+
+<div class="flex items-center space-x-4">
+    <div class="text-right">
+        <p class="font-semibold text-slate-800">{{ username if username else "Student" }}</p>
+        <p class="text-xs text-slate-400">Welcome back</p>
+    </div>
+
+    <a href="/profile"
+       class="w-10 h-10 bg-blue-600 text-white flex items-center justify-center rounded-full font-bold shadow hover:scale-105 transition">
+        {{ username[0] if username else "S" }}
+    </a>
+</div>
+
+</div>
+
+<!-- HERO -->
+<section class="hero text-white px-10 py-20 flex items-center justify-between">
+
+<div>
+    <h1 class="text-5xl font-extrabold mb-4">
+        Smart Campus Portal
+    </h1>
+    <p class="text-lg opacity-90 mb-6">
+        Experience a modern university system powered by technology.
+    </p>
+
+    <div class="space-x-4">
+        <a href="/subjects" class="bg-blue-600 px-6 py-3 rounded shadow hover:bg-blue-700">
+            Explore Subjects
+        </a>
+
+        <a href="/notes" class="border px-6 py-3 rounded hover:bg-white hover:text-black">
+            View Notes
+        </a>
+    </div>
+</div>
+
+<img src="https://cdn-icons-png.flaticon.com/512/3135/3135755.png" class="w-72">
+
+</section>
+
+<!-- DASHBOARD CARDS -->
+<section class="px-10 py-12 bg-white">
+
+<h2 class="text-3xl font-bold text-center mb-10">Quick Access</h2>
+
+<div class="grid md:grid-cols-4 gap-6">
+
+<a href="/students" class="card-hover p-6 bg-slate-50 rounded-xl shadow text-center">
+<h3 class="font-bold text-lg">Students</h3>
+<p class="text-sm text-slate-500 mt-2">Manage students</p>
+</a>
+
+<a href="/teachers" class="card-hover p-6 bg-slate-50 rounded-xl shadow text-center">
+<h3 class="font-bold text-lg">Teachers</h3>
+<p class="text-sm text-slate-500 mt-2">View teachers</p>
+</a>
+
+<a href="/subjects" class="card-hover p-6 bg-slate-50 rounded-xl shadow text-center">
+<h3 class="font-bold text-lg">Subjects</h3>
+<p class="text-sm text-slate-500 mt-2">Explore subjects</p>
+</a>
+
+<a href="/notes" class="card-hover p-6 bg-slate-50 rounded-xl shadow text-center">
+<h3 class="font-bold text-lg">Notes</h3>
+<p class="text-sm text-slate-500 mt-2">Study materials</p>
+</a>
+
+<a href="/schedules" class="card-hover p-6 bg-slate-50 rounded-xl shadow text-center">
+<h3 class="font-bold text-lg">Schedules</h3>
+<p class="text-sm text-slate-500 mt-2">Class routine</p>
+</a>
+
+<a href="/hobbies" class="card-hover p-6 bg-slate-50 rounded-xl shadow text-center">
+<h3 class="font-bold text-lg">Hobbies</h3>
+<p class="text-sm text-slate-500 mt-2">Student interests</p>
+</a>
+
+<a href="/teacher_leave" class="card-hover p-6 bg-slate-50 rounded-xl shadow text-center">
+<h3 class="font-bold text-lg">Teacher Leave</h3>
+<p class="text-sm text-slate-500 mt-2">Availability</p>
+</a>
+
+</div>
+
+</section>
+
+<!-- ABOUT -->
+<section class="px-10 py-16 bg-blue-50">
+
+<div class="max-w-6xl mx-auto grid md:grid-cols-2 gap-10 items-center">
+
+<div>
+    <h2 class="text-4xl font-bold text-slate-900 mb-4">
+        About Smart Campus
+    </h2>
+
+    <p class="text-slate-600 mb-4">
+        A powerful university system designed to simplify academic life.
+    </p>
+
+    <ul class="space-y-2 text-slate-700">
+        <li>AI-powered system</li>
+        <li>Real-time updates</li>
+        <li>Smart dashboards</li>
+        <li>Modern experience</li>
+    </ul>
+</div>
+
+<img src="https://cdn-icons-png.flaticon.com/512/4140/4140048.png">
+
+</div>
+
+</section>
+
+</div>
+
+<!-- CHAT BUTTON -->
+<button onclick="toggleChat()" class="fixed bottom-6 right-6 bg-[#0B1F3A] text-white w-14 h-14 rounded-full shadow-lg">
+Chat
+</button>
+
+<!-- CHAT BOX -->
+<div id="chatBox" class="hidden fixed bottom-24 right-6 w-80 bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden border">
+
+    <div class="bg-[#0B1F3A] text-white p-4 flex justify-between items-center">
+        <span>Sara AI Assistant</span>
+        <button onclick="toggleChat()">✖</button>
+    </div>
+
+    <div id="chatMessages" class="p-4 h-64 overflow-y-auto text-sm space-y-2 bg-slate-50">
+        <div class="text-slate-500">Hello I am Sara AI. Ask me anything about your campus.</div>
+    </div>
+
+    <div class="flex border-t">
+        <input id="chatInput" class="flex-1 p-2 outline-none" placeholder="Type message...">
+        <button onclick="sendMessage()" class="bg-[#0B1F3A] text-white px-4">
+            Send
+        </button>
+    </div>
+
+<script>
+function toggleChat() {
+    document.getElementById("chatBox").classList.toggle("hidden");
+}
+
+function sendMessage() {
+    const input = document.getElementById("chatInput");
+    const messages = document.getElementById("chatMessages");
+
+    if (input.value.trim() === "") return;
+
+    messages.innerHTML += `<div class="text-right text-blue-600">${input.value}</div>`;
+    messages.innerHTML += `<div>AI: Coming soon</div>`;
+
+    input.value = "";
+}
+</script>
+
+</body>
+</html>
