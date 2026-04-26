@@ -1,59 +1,44 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sign Up - Smart Campus</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
+<body class="min-h-screen bg-cover bg-center text-white" style="background-image: linear-gradient(to bottom, rgba(3, 6, 15, 0.84), rgba(3, 6, 15, 0.9)), url('https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&w=1800&q=80');">
+    <div class="mx-auto flex min-h-screen max-w-7xl items-center justify-center px-6">
+        <div class="w-full max-w-md rounded-2xl border border-white/15 bg-black/65 p-8 shadow-2xl backdrop-blur">
+            <p class="text-xs uppercase tracking-[0.3em] text-slate-300">Smart Campus</p>
+            <h2 class="mt-2 text-3xl font-semibold text-white">Create Account</h2>
+            <p class="mt-2 text-sm text-slate-300">Register as student or teacher.</p>
 
-<body class="bg-gradient-to-br from-blue-900 to-blue-600 min-h-screen flex items-center justify-center">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% for category, message in messages %}
+                    <div class="mt-4 rounded-lg border p-2 text-center text-sm
+                        {% if category == 'danger' %} border-red-400/40 bg-red-500/10 text-red-300 {% endif %}
+                        {% if category == 'success' %} border-emerald-400/40 bg-emerald-500/10 text-emerald-300 {% endif %}
+                    ">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endwith %}
 
-<div class="bg-white w-[350px] p-8 rounded-2xl shadow-2xl">
+            <form method="POST" class="mt-6 space-y-3">
+                <input type="text" name="username" placeholder="Username" required class="w-full rounded-xl border border-white/20 bg-slate-900/70 px-4 py-3 text-slate-100 placeholder:text-slate-400">
+                <input type="password" name="password" placeholder="Password" required class="w-full rounded-xl border border-white/20 bg-slate-900/70 px-4 py-3 text-slate-100 placeholder:text-slate-400">
+                <select name="role" required class="w-full rounded-xl border border-white/20 bg-slate-900/70 px-4 py-3 text-slate-100">
+                    <option value="student">Student</option>
+                    <option value="teacher">Teacher</option>
+                </select>
+                <button type="submit" class="w-full rounded-xl bg-blue-500 py-3 font-semibold text-white hover:bg-blue-400">Sign Up</button>
+            </form>
 
-    <h2 class="text-2xl font-bold text-center text-blue-900 mb-6">
-        Create Account
-    </h2>
-
-    <!-- FLASH MESSAGES -->
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% for category, message in messages %}
-            <div class="mb-3 text-sm p-2 rounded text-center
-                {% if category == 'danger' %} bg-red-100 text-red-700 {% endif %}
-                {% if category == 'success' %} bg-green-100 text-green-700 {% endif %}
-            ">
-                {{ message }}
+            <div class="mt-4 text-center text-sm">
+                <p class="text-slate-300">Already have an account?</p>
+                <a href="/login" class="mt-1 block text-blue-300 hover:text-blue-200">Login Here</a>
             </div>
-        {% endfor %}
-    {% endwith %}
-
-    <form method="POST" class="space-y-3">
-
-        <input type="text" name="username" placeholder="Username" required>
-        <input type="password" name="password" placeholder="Password" required>
-
-        <select name="role" required>
-            <option value="student">Student</option>
-            <option value="teacher">Teacher</option>
-        </select> 
-
-        <button type="submit"
-            class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-bold">
-            Sign Up
-        </button>
-
-    </form>
-
-    <div class="text-center mt-4 text-sm space-y-1">
-
-        <p class="text-gray-600">Already have an account?</p>
-
-        <!-- LINKS -->
-        <a href="/login" class="text-blue-600 block">
-            Login Here
-        </a>
-
+        </div>
     </div>
-
-</div>
-
 </body>
 </html>

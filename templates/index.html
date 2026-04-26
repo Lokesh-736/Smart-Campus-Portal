@@ -2,77 +2,35 @@
 
 {% block content %}
 
-<section class="relative flex flex-col md:flex-row items-center justify-between px-10 py-20 bg-blue-50 overflow-hidden">
-
-    <div class="max-w-xl z-10">
-
-        <h4 class="text-blue-600 font-bold uppercase tracking-widest mb-4">
-            Smarter Schedules, Smarter Students
-        </h4>
-
-        <h1 class="text-6xl font-extrabold text-gray-900 leading-tight mb-6">
-            Smart Campus Portal <br>
-            <span class="text-blue-600">With AI Assistant</span>
-        </h1>
-
-        <p class="text-gray-600 text-lg mb-8">
-            Improving academic efficiency and engagement through intelligent automation and personalized assistance.
-        </p>
-
-        <div class="flex space-x-4">
-
-            <a href="/login"
-               class="bg-blue-600 text-white px-8 py-3 rounded-md font-bold hover:bg-blue-700 transition shadow-lg">
-                Login
-            </a>
-
-            <a href="/signup"
-               class="border-2 border-gray-800 px-8 py-3 rounded-md font-bold hover:bg-gray-800 hover:text-white transition">
-                Create Account
-            </a>
-
-        </div>
-
+<section class="rounded-2xl border border-white/10 bg-black/55 p-8">
+    <p class="text-xs uppercase tracking-[0.3em] text-blue-300">Portal Overview</p>
+    <h2 class="mt-2 text-4xl font-semibold text-white">Smart Campus University</h2>
+    <p class="mt-3 max-w-2xl text-sm text-slate-300">
+        Unified digital platform for student and faculty activities, designed with a modern university UI.
+    </p>
+    <div class="mt-6 flex flex-wrap gap-3">
+        <a href="/login" class="rounded-full bg-blue-500 px-6 py-2 text-sm font-semibold text-white hover:bg-blue-400">Login</a>
+        <a href="/signup" class="rounded-full border border-white/40 px-6 py-2 text-sm font-semibold text-white hover:bg-white hover:text-black">Create Account</a>
     </div>
-
 </section>
 
-<!-- FEATURES -->
-<section class="py-20 px-10">
-
-    <div class="text-center mb-16">
-        <h2 class="text-4xl font-black text-gray-900">
-            Explore Our Portal
-        </h2>
-        <p class="text-gray-500 mt-2">
-            Features coming soon
-        </p>
-    </div>
-
-    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 max-w-7xl mx-auto">
-
-        <div class="bg-white p-8 rounded-2xl shadow-sm text-center border-b-4 border-blue-500">
-            <h3 class="font-bold text-xl">Students</h3>
-            <p class="text-gray-500 mt-2 text-sm">Module coming soon</p>
-        </div>
-
-        <div class="bg-white p-8 rounded-2xl shadow-sm text-center border-b-4 border-indigo-500">
-            <h3 class="font-bold text-xl">Schedules</h3>
-            <p class="text-gray-500 mt-2 text-sm">Module coming soon</p>
-        </div>
-
-        <div class="bg-white p-8 rounded-2xl shadow-sm text-center border-b-4 border-emerald-500">
-            <h3 class="font-bold text-xl">Notes</h3>
-            <p class="text-gray-500 mt-2 text-sm">Module coming soon</p>
-        </div>
-
-        <div class="bg-white p-8 rounded-2xl shadow-sm text-center border-b-4 border-rose-500">
-            <h3 class="font-bold text-xl">Teachers</h3>
-            <p class="text-gray-500 mt-2 text-sm">Module coming soon</p>
-        </div>
-
-    </div>
-
+<section class="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+    <a href="/students" class="rounded-xl border border-white/10 bg-black/45 p-5 hover:bg-black/60">
+        <h3 class="text-lg font-semibold text-white">Students</h3>
+        <p class="mt-1 text-sm text-slate-400">View student directory</p>
+    </a>
+    <a href="/teachers" class="rounded-xl border border-white/10 bg-black/45 p-5 hover:bg-black/60">
+        <h3 class="text-lg font-semibold text-white">Teachers</h3>
+        <p class="mt-1 text-sm text-slate-400">View faculty directory</p>
+    </a>
+    <a href="/subjects" class="rounded-xl border border-white/10 bg-black/45 p-5 hover:bg-black/60">
+        <h3 class="text-lg font-semibold text-white">Subjects</h3>
+        <p class="mt-1 text-sm text-slate-400">Manage all subjects</p>
+    </a>
+    <a href="/notes" class="rounded-xl border border-white/10 bg-black/45 p-5 hover:bg-black/60">
+        <h3 class="text-lg font-semibold text-white">Notes</h3>
+        <p class="mt-1 text-sm text-slate-400">Upload and download resources</p>
+    </a>
 </section>
 
 {% endblock %}

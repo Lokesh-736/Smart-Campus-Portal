@@ -5,9 +5,19 @@
 
 <div class="max-w-7xl mx-auto">
 
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+        <div class="mb-4 rounded-lg border p-3 text-sm
+            {% if category == 'danger' %} border-red-300 bg-red-50 text-red-700 {% endif %}
+            {% if category == 'success' %} border-emerald-300 bg-emerald-50 text-emerald-700 {% endif %}
+        ">
+            {{ message }}
+        </div>
+        {% endfor %}
+    {% endwith %}
+
     <!-- HEADER -->
     <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-6 mb-8">
-
         <div class="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
 
             <div>
@@ -15,15 +25,15 @@
                     Faculty Leave Management
                 </h1>
                 <p class="text-sm text-slate-500 mt-1">
-                    Real-time overview of faculty availability
+                    Leave applications and today's teacher absence status
                 </p>
             </div>
 
             <!-- STATS -->
             <div class="bg-slate-100 px-5 py-3 rounded-lg text-center">
-                <p class="text-xs text-slate-500 uppercase">Total Records</p>
+                <p class="text-xs text-slate-500 uppercase">Absent Today</p>
                 <p class="text-xl font-semibold text-[#0B1F3A]">
-                    {{ teacher_leave|length }}
+                    {{ today_absent|length }}
                 </p>
             </div>
 
@@ -33,45 +43,68 @@
 
     </div>
 
-    <!-- TABLE -->
-    <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+    {% if session.get("role") == "teacher" %}
+    <!-- TEACHER APPLY FORM -->
+    <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-6 mb-8">
+        <h2 class="text-xl font-semibold text-[#0B1F3A] mb-4">Apply for Leave</h2>
+        <form method="POST" action="/apply_teacher_leave" class="grid gap-4 md:grid-cols-3">
+            <input type="date" name="date" required class="p-3 border rounded-lg">
+            <input type="text" name="subject" required placeholder="Subject you teach" class="p-3 border rounded-lg">
+            <input type="text" name="reason" required placeholder="Reason for leave" class="p-3 border rounded-lg">
+            <button class="md:col-span-3 bg-[#0B1F3A] text-white px-5 py-2 rounded-lg font-semibold hover:bg-[#173765]">
+                Submit Leave Application
+            </button>
+        </form>
+    </div>
+    {% endif %}
 
-        {% if teacher_leave and teacher_leave|length > 0 %}
+    <!-- TODAY ABSENT TABLE (for students + teachers) -->
+    <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+        <div class="px-6 py-4 border-b bg-slate-50">
+            <h2 class="text-lg font-semibold text-[#0B1F3A]">Teachers Absent Today ({{ today }})</h2>
+        </div>
+
+        {% if today_absent and today_absent|length > 0 %}
 
         <table class="w-full text-sm">
 
             <thead class="bg-[#0B1F3A] text-white">
                 <tr>
-                    <th class="px-6 py-4">Faculty</th>
-                    <th class="px-6 py-4">Department</th>
+                    <th class="px-6 py-4">Teacher Name</th>
+                    <th class="px-6 py-4">Subject</th>
+                    <th class="px-6 py-4">Time/Date</th>
                     <th class="px-6 py-4">Status</th>
                 </tr>
             </thead>
 
             <tbody class="divide-y">
 
-                {% for leave in teacher_leave %}
+                {% for leave in today_absent %}
                 <tr class="hover:bg-slate-50 transition">
 
                     <td class="px-6 py-4 flex items-center gap-3">
 
                         <div class="w-9 h-9 rounded-full bg-[#0B1F3A] text-white flex items-center justify-center text-sm font-semibold">
-                            {{ leave["name"][0]|upper }}
+                            {{ leave["teacher_name"][0]|upper }}
                         </div>
 
                         <span class="font-semibold text-[#0B1F3A]">
-                            {{ leave["name"] }}
+                            {{ leave["teacher_name"] }}
                         </span>
 
                     </td>
 
                     <td class="px-6 py-4 text-slate-600">
-                        Science & IT
+                        {{ leave["subject"] or "Not specified" }}
+                    </td>
+
+                    <td class="px-6 py-4 text-slate-600">
+                        {{ leave["date"] }}
                     </td>
 
                     <td class="px-6 py-4">
                         <span class="px-3 py-1 text-xs rounded-full font-semibold
-                            {% if leave['status']=='On Leave' %}
+                            {% if leave['status'] in ['On Leave', 'Scheduled Leave'] %}
                                 bg-red-100 text-red-700
                             {% else %}
                                 bg-emerald-100 text-emerald-700
@@ -92,16 +125,60 @@
 
         <div class="p-14 text-center">
             <h2 class="text-lg font-semibold text-[#0B1F3A]">
-                No Leave Records Found
+                No Teacher Absence Today
             </h2>
             <p class="text-sm text-slate-500 mt-2">
-                All faculty are currently available.
+                All teachers are currently available for today's classes.
             </p>
         </div>
 
         {% endif %}
 
     </div>
+
+    {% if session.get("role") == "teacher" %}
+    <!-- MY LEAVE APPLICATIONS -->
+    <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden mt-8">
+        <div class="px-6 py-4 border-b bg-slate-50">
+            <h2 class="text-lg font-semibold text-[#0B1F3A]">My Leave Applications</h2>
+        </div>
+
+        {% if teacher_leave and teacher_leave|length > 0 %}
+        <table class="w-full text-sm">
+            <thead class="bg-[#0B1F3A] text-white">
+                <tr>
+                    <th class="px-6 py-4">Date</th>
+                    <th class="px-6 py-4">Subject</th>
+                    <th class="px-6 py-4">Reason</th>
+                    <th class="px-6 py-4">Status</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y">
+                {% for leave in teacher_leave %}
+                <tr class="hover:bg-slate-50 transition">
+                    <td class="px-6 py-4 text-slate-700">{{ leave["date"] }}</td>
+                    <td class="px-6 py-4 text-slate-700">{{ leave["subject"] or "Not specified" }}</td>
+                    <td class="px-6 py-4 text-slate-700">{{ leave["reason"] }}</td>
+                    <td class="px-6 py-4">
+                        <span class="px-3 py-1 text-xs rounded-full font-semibold
+                            {% if leave['status'] in ['On Leave', 'Scheduled Leave'] %}
+                                bg-red-100 text-red-700
+                            {% else %}
+                                bg-emerald-100 text-emerald-700
+                            {% endif %}
+                        ">
+                            {{ leave["status"] }}
+                        </span>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="p-8 text-sm text-slate-500">No leave applications submitted yet.</div>
+        {% endif %}
+    </div>
+    {% endif %}
 
 </div>
 </div>

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login - Smart Campus</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen bg-cover bg-center text-white" style="background-image: linear-gradient(to bottom, rgba(3, 6, 15, 0.84), rgba(3, 6, 15, 0.92)), url('https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1800&q=80');">
+    <div class="mx-auto flex min-h-screen max-w-7xl items-center justify-center px-6">
+        <div class="w-full max-w-md rounded-2xl border border-white/15 bg-black/70 p-8 shadow-2xl backdrop-blur">
+            <p class="text-xs uppercase tracking-[0.3em] text-slate-300">Smart Campus</p>
+            <h2 class="mt-2 text-3xl font-semibold text-white">Admin Access</h2>
+            <p class="mt-2 text-sm text-slate-300">Private admin login.</p>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% for category, message in messages %}
+                    <div class="mt-4 rounded-lg border p-2 text-center text-sm
+                        {% if category == 'danger' %} border-red-400/40 bg-red-500/10 text-red-300 {% endif %}
+                        {% if category == 'success' %} border-emerald-400/40 bg-emerald-500/10 text-emerald-300 {% endif %}
+                    ">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endwith %}
+
+            <form method="POST" class="mt-6 space-y-3">
+                <input type="text" name="username" placeholder="Admin Username" required class="w-full rounded-xl border border-white/20 bg-slate-900/70 px-4 py-3 text-slate-100 placeholder:text-slate-400">
+                <input type="password" name="password" placeholder="Admin Password" required class="w-full rounded-xl border border-white/20 bg-slate-900/70 px-4 py-3 text-slate-100 placeholder:text-slate-400">
+                <button type="submit" class="w-full rounded-xl bg-blue-500 py-3 font-semibold text-white hover:bg-blue-400">Login as Admin</button>
+            </form>
+
+            <a href="/login" class="mt-4 block text-center text-sm text-blue-300 hover:text-blue-200">Back to normal login</a>
+        </div>
+    </div>
+</body>
+</html>

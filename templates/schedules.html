@@ -5,6 +5,17 @@
 
 <div class="max-w-7xl mx-auto">
 
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+        <div class="mb-4 rounded-lg border p-3 text-sm
+            {% if category == 'danger' %} border-red-300 bg-red-50 text-red-700 {% endif %}
+            {% if category == 'success' %} border-emerald-300 bg-emerald-50 text-emerald-700 {% endif %}
+        ">
+            {{ message }}
+        </div>
+        {% endfor %}
+    {% endwith %}
+
     <!-- HEADER -->
     <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-6 mb-8">
 
@@ -32,6 +43,43 @@
 
     </div>
 
+    {% if session.get("role") == "teacher" %}
+    <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-6 mb-8">
+        <h2 class="text-xl font-semibold text-[#0B1F3A] mb-4">
+            {% if edit_schedule %}Edit Schedule{% else %}Create Schedule{% endif %}
+        </h2>
+
+        <form method="POST" action="{% if edit_schedule %}/update_schedule/{{ edit_schedule['id'] }}{% else %}/add_schedule{% endif %}" class="grid gap-4 md:grid-cols-4">
+            <input type="text" name="day" required placeholder="Day (e.g. Monday)"
+                   value="{{ edit_schedule['day'] if edit_schedule else '' }}"
+                   class="p-3 border rounded-lg">
+
+            <input type="text" name="class_name" required placeholder="Subject/Class"
+                   value="{{ edit_schedule['class_name'] if edit_schedule else '' }}"
+                   class="p-3 border rounded-lg">
+
+            <input type="text" name="time" required placeholder="Time (e.g. 10:00-11:00)"
+                   value="{{ edit_schedule['time'] if edit_schedule else '' }}"
+                   class="p-3 border rounded-lg">
+
+            <input type="text" name="room" required placeholder="Room"
+                   value="{{ edit_schedule['room'] if edit_schedule else '' }}"
+                   class="p-3 border rounded-lg">
+
+            <div class="md:col-span-4 flex gap-3">
+                <button class="bg-[#0B1F3A] text-white px-5 py-2 rounded-lg font-semibold hover:bg-[#173765]">
+                    {% if edit_schedule %}Update Schedule{% else %}Create Schedule{% endif %}
+                </button>
+                {% if edit_schedule %}
+                <a href="/schedules" class="bg-slate-200 text-slate-700 px-5 py-2 rounded-lg font-semibold hover:bg-slate-300">
+                    Cancel Edit
+                </a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+    {% endif %}
+
     <!-- TABLE -->
     <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
 
@@ -41,10 +89,16 @@
 
             <thead class="bg-[#0B1F3A] text-white">
                 <tr>
+                    {% if session.get("role") == "teacher" %}
+                    <th class="px-6 py-4">ID</th>
+                    {% endif %}
                     <th class="px-6 py-4">Day</th>
                     <th class="px-6 py-4">Subject</th>
                     <th class="px-6 py-4">Time</th>
                     <th class="px-6 py-4">Room</th>
+                    {% if session.get("role") == "teacher" %}
+                    <th class="px-6 py-4">Actions</th>
+                    {% endif %}
                 </tr>
             </thead>
 
@@ -52,6 +106,9 @@
 
                 {% for sch in schedules %}
                 <tr class="hover:bg-slate-50 transition">
+                    {% if session.get("role") == "teacher" %}
+                    <td class="px-6 py-4 text-slate-600">#{{ sch["id"] }}</td>
+                    {% endif %}
 
                     <td class="px-6 py-4 font-semibold text-[#0B1F3A]">
                         {{ sch["day"] }}
@@ -70,6 +127,22 @@
                             {{ sch["room"] }}
                         </span>
                     </td>
+
+                    {% if session.get("role") == "teacher" %}
+                    <td class="px-6 py-4">
+                        <div class="flex gap-2">
+                            <a href="/schedules?edit_id={{ sch['id'] }}"
+                               class="bg-blue-100 text-blue-700 px-3 py-1 rounded text-xs font-semibold">
+                                Edit
+                            </a>
+                            <form method="POST" action="/delete_schedule/{{ sch['id'] }}" onsubmit="return confirm('Delete this schedule?');">
+                                <button class="bg-red-100 text-red-700 px-3 py-1 rounded text-xs font-semibold">
+                                    Delete
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                    {% endif %}
 
                 </tr>
                 {% endfor %}

@@ -32,58 +32,66 @@
 
     </div>
 
-    <!-- TABLE -->
-    <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+    <!-- PROFESSIONAL STUDENT LIST (MATCHES FACULTY STYLE) -->
+    <div class="space-y-6">
 
         {% if students and students|length > 0 %}
 
-        <table class="w-full text-sm">
+        {% for student in students %}
+        <article class="rounded-xl border border-slate-200 bg-white p-8 shadow-sm">
+            <div class="grid gap-8 md:grid-cols-[260px_1fr]">
+                <div>
+                    <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                        Student ID #{{ student["id"] }}
+                    </p>
 
-            <thead class="bg-[#0B1F3A] text-white">
-                <tr>
-                    <th class="px-6 py-4">ID</th>
-                    <th class="px-6 py-4">Student Name</th>
-                    <th class="px-6 py-4">Role</th>
-                </tr>
-            </thead>
+                    <div class="mt-4 flex h-52 w-44 items-center justify-center overflow-hidden rounded-md border border-slate-300 bg-slate-100">
+                        {% if student["profile_image"] %}
+                        <img src="/uploads/{{ student['profile_image'] }}" alt="Student profile image"
+                             class="h-full w-full object-cover">
+                        {% else %}
+                        <span class="text-4xl font-semibold text-slate-500">
+                            {{ student["username"][0]|upper }}
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
 
-            <tbody class="divide-y">
-
-                {% for s in students %}
-                <tr class="hover:bg-slate-50 transition">
-
-                    <td class="px-6 py-4 text-slate-600">
-                        #{{ s["id"] }}
-                    </td>
-
-                    <td class="px-6 py-4 flex items-center gap-3">
-
-                        <div class="w-9 h-9 rounded-full bg-[#0B1F3A] text-white flex items-center justify-center text-sm font-semibold">
-                            {{ s["username"][0]|upper }}
+                <div class="pt-8 md:pt-10">
+                    <dl class="space-y-7">
+                        <div>
+                            <dt class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">User Name</dt>
+                            <dd class="mt-1 text-2xl font-semibold text-[#0B1F3A]">
+                                {{ student["full_name"] or student["username"] }}
+                            </dd>
                         </div>
 
-                        <span class="font-semibold text-[#0B1F3A]">
-                            {{ s["username"] }}
-                        </span>
+                        <div>
+                            <dt class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Contact Email</dt>
+                            <dd class="mt-1 text-lg font-medium text-slate-700">
+                                {% if student["email"] %}
+                                <a href="mailto:{{ student['email'] }}" class="text-blue-700 hover:underline">{{ student["email"] }}</a>
+                                {% else %}
+                                Not available
+                                {% endif %}
+                            </dd>
+                        </div>
 
-                    </td>
-
-                    <td class="px-6 py-4">
-                        <span class="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700">
-                            Student
-                        </span>
-                    </td>
-
-                </tr>
-                {% endfor %}
-
-            </tbody>
-
-        </table>
+                        <div>
+                            <dt class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Phone</dt>
+                            <dd class="mt-1 text-lg font-medium text-slate-700">
+                                {{ student["phone"] or "Not available" }}
+                            </dd>
+                        </div>
+                    </dl>
+                </div>
+            </div>
+        </article>
+        {% endfor %}
 
         {% else %}
 
-        <div class="p-14 text-center">
+        <div class="rounded-xl border border-slate-200 bg-white p-14 text-center shadow-sm">
             <h2 class="text-lg font-semibold text-[#0B1F3A]">
                 No Students Found
             </h2>

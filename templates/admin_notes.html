@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="min-h-screen px-6 py-6">
+  <div class="mx-auto max-w-7xl">
+    <div class="mb-6 rounded-2xl border border-white/10 bg-black/30 p-6">
+      <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+        <div>
+          <h1 class="text-3xl font-semibold text-white">Manage Notes</h1>
+          <p class="mt-1 text-sm text-slate-300">Review uploaded notes and remove unwanted files.</p>
+        </div>
+        <a href="/notes" class="rounded-full border border-white/20 px-5 py-2 text-xs font-semibold text-slate-200 hover:bg-white/10">Open Notes Page</a>
+      </div>
+      <div class="mt-5 h-[2px] w-full bg-gradient-to-r from-[#C8A951] via-[#0B1F3A] to-transparent"></div>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for category, message in messages %}
+        <div class="mb-4 rounded-lg border p-3 text-sm
+          {% if category == 'danger' %} border-red-400/40 bg-red-500/10 text-red-300 {% endif %}
+          {% if category == 'success' %} border-emerald-400/40 bg-emerald-500/10 text-emerald-300 {% endif %}
+        ">
+          {{ message }}
+        </div>
+      {% endfor %}
+    {% endwith %}
+
+    <div class="overflow-hidden rounded-2xl border border-white/10 bg-black/30">
+      <table class="w-full text-sm">
+        <thead class="bg-slate-900 text-white">
+          <tr>
+            <th class="px-6 py-4 text-left">ID</th>
+            <th class="px-6 py-4 text-left">Subject</th>
+            <th class="px-6 py-4 text-left">Title</th>
+            <th class="px-6 py-4 text-left">File</th>
+            <th class="px-6 py-4 text-left">Action</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-white/10">
+          {% for n in notes %}
+          <tr class="hover:bg-white/5">
+            <td class="px-6 py-4 text-slate-200">#{{ n["id"] }}</td>
+            <td class="px-6 py-4 text-white font-semibold">{{ n["subject"] }}</td>
+            <td class="px-6 py-4 text-slate-200">{{ n["title"] }}</td>
+            <td class="px-6 py-4 text-slate-200">
+              {% if n["file_path"] %}
+                <a class="text-blue-300 hover:underline" href="/uploads/{{ n['file_path'] }}">Download</a>
+              {% else %}
+                —
+              {% endif %}
+            </td>
+            <td class="px-6 py-4">
+              <form method="POST" action="/admin/notes/{{ n['id'] }}/delete" onsubmit="return confirm('Delete this note?');">
+                <button type="submit" class="rounded-full border border-red-300/40 px-4 py-2 text-xs font-semibold text-red-300 hover:bg-red-500/10">Delete</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

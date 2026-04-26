@@ -19,6 +19,22 @@ def create_tables():
     )
     """)
 
+    # Backward-compatible profile fields for existing databases
+    cursor.execute("PRAGMA table_info(users)")
+    existing_columns = {row[1] for row in cursor.fetchall()}
+    extra_columns = {
+        "full_name": "TEXT",
+        "email": "TEXT",
+        "phone": "TEXT",
+        "bio": "TEXT",
+        "profile_image": "TEXT",
+        "teacher_subject": "TEXT",
+        "is_active": "INTEGER DEFAULT 1",
+    }
+    for column_name, column_type in extra_columns.items():
+        if column_name not in existing_columns:
+            cursor.execute(f"ALTER TABLE users ADD COLUMN {column_name} {column_type}")
+
     # NOTES TABLE
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS notes (
@@ -47,11 +63,18 @@ def create_tables():
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         teacher_id INTEGER,
         date TEXT,
+        subject TEXT,
         reason TEXT,
         status TEXT DEFAULT 'Pending',
         FOREIGN KEY (teacher_id) REFERENCES users(id)
 )
 """)
+
+    # Backward-compatible migration for existing teacher_leave table
+    cursor.execute("PRAGMA table_info(teacher_leave)")
+    leave_columns = {row[1] for row in cursor.fetchall()}
+    if "subject" not in leave_columns:
+        cursor.execute("ALTER TABLE teacher_leave ADD COLUMN subject TEXT")
     
     # STUDENT HOBBIES TABLE
     cursor.execute("""
@@ -72,6 +95,20 @@ def create_tables():
     subject_id TEXT
 )
 """)
+
+    # Ensure a default admin account exists (and has expected credentials)
+    cursor.execute("SELECT id FROM users WHERE username=?", ("Lokesh Thapa",))
+    row = cursor.fetchone()
+    if not row:
+        cursor.execute(
+            "INSERT INTO users (username, password, role) VALUES (?, ?, ?)",
+            ("Lokesh Thapa", "Admin123", "admin"),
+        )
+    else:
+        cursor.execute(
+            "UPDATE users SET password=?, role=? WHERE id=?",
+            ("Admin123", "admin", row[0]),
+        )
 
     conn.commit()
     conn.close()

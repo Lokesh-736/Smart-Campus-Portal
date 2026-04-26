@@ -15,12 +15,19 @@
                         Student Interest Analytics
                     </h1>
                     <p class="text-sm text-slate-500 mt-1">
-                        AI-driven insights into student preferences and activities
+                        Professional insights into student interests and activities
                     </p>
                 </div>
 
-                <div class="text-sm font-medium text-slate-600">
-                    {{ student_hobbies|length }} Records
+                <div class="flex gap-3">
+                    <div class="rounded-lg bg-slate-100 px-4 py-2 text-center">
+                        <p class="text-[10px] uppercase tracking-wide text-slate-500">Students</p>
+                        <p class="text-lg font-semibold text-[#0B1F3A]">{{ total_students_with_interests or 0 }}</p>
+                    </div>
+                    <div class="rounded-lg bg-slate-100 px-4 py-2 text-center">
+                        <p class="text-[10px] uppercase tracking-wide text-slate-500">Records</p>
+                        <p class="text-lg font-semibold text-[#0B1F3A]">{{ total_interest_records or 0 }}</p>
+                    </div>
                 </div>
 
             </div>
@@ -28,6 +35,78 @@
             <!-- GOLD ACCENT -->
             <div class="mt-4 h-1 w-16 bg-[#C8A951] rounded"></div>
 
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% for category, message in messages %}
+                <div class="mb-4 rounded-lg border p-3 text-sm
+                    {% if category == 'danger' %} border-red-400/40 bg-red-500/10 text-red-700 {% endif %}
+                    {% if category == 'success' %} border-emerald-400/40 bg-emerald-500/10 text-emerald-800 {% endif %}
+                ">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endwith %}
+
+        <!-- STUDENT INPUT (ONLY FOR STUDENTS) -->
+        {% if role == "student" %}
+        <div class="mb-8 grid gap-4 md:grid-cols-3">
+            <div class="bg-white border border-slate-200 rounded-lg shadow-sm p-6 md:col-span-1">
+                <h2 class="text-lg font-semibold text-[#0B1F3A]">Add your interests</h2>
+                <p class="mt-1 text-xs text-slate-500">Add one or multiple values separated by comma or new line.</p>
+                <form method="POST" action="/add_hobby" class="mt-4 space-y-3">
+                    <textarea name="hobby" rows="4" placeholder="e.g. Football, AI, Music, Programming" class="w-full rounded-lg border border-slate-300 px-3 py-2"></textarea>
+                    <button type="submit" class="w-full rounded-lg bg-[#0B1F3A] px-4 py-2 text-sm font-semibold text-white hover:bg-[#14345f]">
+                        Save Interests
+                    </button>
+                </form>
+            </div>
+
+            <div class="bg-white border border-slate-200 rounded-lg shadow-sm p-6 md:col-span-2">
+                <h2 class="text-lg font-semibold text-[#0B1F3A]">Your interests</h2>
+                <p class="mt-1 text-xs text-slate-500">You can remove anything anytime.</p>
+
+                {% if my_hobbies and my_hobbies|length > 0 %}
+                <div class="mt-4 flex flex-wrap gap-2">
+                    {% for h in my_hobbies %}
+                    <form method="POST" action="/delete_hobby/{{ h['id'] }}">
+                        <button type="submit" class="group inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-red-50 hover:text-red-700">
+                            {{ h["hobby"] }}
+                            <span class="text-slate-400 group-hover:text-red-500">✕</span>
+                        </button>
+                    </form>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="mt-4 rounded-lg border border-dashed border-slate-200 p-6 text-sm text-slate-600">
+                    You haven’t added any interests yet.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- TOP INTERESTS -->
+        <div class="mb-8 bg-white border border-slate-200 rounded-lg shadow-sm p-6">
+            <div class="flex items-center justify-between gap-3">
+                <div>
+                    <h2 class="text-lg font-semibold text-[#0B1F3A]">Top interests</h2>
+                    <p class="mt-1 text-xs text-slate-500">Most common interests across students.</p>
+                </div>
+            </div>
+
+            {% if top_interests and top_interests|length > 0 %}
+            <div class="mt-4 grid gap-3 md:grid-cols-4">
+                {% for t in top_interests %}
+                <div class="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                    <p class="text-sm font-semibold text-[#0B1F3A]">{{ t["hobby"] }}</p>
+                    <p class="mt-1 text-xs text-slate-500">{{ t["c"] }} student(s)</p>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="mt-4 text-sm text-slate-600">No interest data yet.</div>
+            {% endif %}
         </div>
 
         <!-- TABLE -->
@@ -50,7 +129,7 @@
                     <tr class="hover:bg-slate-50 transition duration-150">
 
                         <td class="px-6 py-4 font-semibold text-[#0B1F3A]">
-                            {{ sh["student_name"] }}
+                            {{ sh["student_display_name"] or sh["student_name"] }}
                         </td>
 
                         <td class="px-6 py-4">
@@ -75,7 +154,7 @@
                     No Student Data Available
                 </h2>
                 <p class="text-sm text-slate-500 mt-2">
-                    Student interests will appear here once collected.
+                    Student interests will appear here once students add them.
                 </p>
             </div>
 

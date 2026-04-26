@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="min-h-screen px-6 py-6">
+  <div class="mx-auto max-w-7xl">
+    <div class="mb-6 rounded-2xl border border-white/10 bg-black/30 p-6">
+      <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+        <div>
+          <h1 class="text-3xl font-semibold text-white">Manage Schedules</h1>
+          <p class="mt-1 text-sm text-slate-300">Create, edit, and remove class schedule entries.</p>
+        </div>
+        <a href="/schedules" class="rounded-full border border-white/20 px-5 py-2 text-xs font-semibold text-slate-200 hover:bg-white/10">Open Schedules Page</a>
+      </div>
+      <div class="mt-5 h-[2px] w-full bg-gradient-to-r from-[#C8A951] via-[#0B1F3A] to-transparent"></div>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for category, message in messages %}
+        <div class="mb-4 rounded-lg border p-3 text-sm
+          {% if category == 'danger' %} border-red-400/40 bg-red-500/10 text-red-300 {% endif %}
+          {% if category == 'success' %} border-emerald-400/40 bg-emerald-500/10 text-emerald-300 {% endif %}
+        ">
+          {{ message }}
+        </div>
+      {% endfor %}
+    {% endwith %}
+
+    <div class="grid gap-4 md:grid-cols-3">
+      <div class="rounded-2xl border border-white/10 bg-black/30 p-6 md:col-span-1">
+        <h2 class="text-lg font-semibold text-white">{{ "Edit Schedule" if edit_schedule else "Add Schedule" }}</h2>
+        <form method="POST" action="{{ '/admin/schedules/%s/update'|format(edit_schedule['id']) if edit_schedule else '/admin/schedules/add' }}" class="mt-4 space-y-3">
+          <input type="text" name="day" placeholder="Day (e.g. Sunday)" value="{{ edit_schedule['day'] if edit_schedule else '' }}" required>
+          <input type="text" name="class_name" placeholder="Class name" value="{{ edit_schedule['class_name'] if edit_schedule else '' }}" required>
+          <input type="text" name="time" placeholder="Time (e.g. 10:00 AM)" value="{{ edit_schedule['time'] if edit_schedule else '' }}" required>
+          <input type="text" name="room" placeholder="Room" value="{{ edit_schedule['room'] if edit_schedule else '' }}" required>
+          <button type="submit" class="w-full rounded-xl bg-blue-500 py-3 text-sm font-semibold text-white hover:bg-blue-400">
+            {{ "Update" if edit_schedule else "Add" }}
+          </button>
+          {% if edit_schedule %}
+            <a href="/admin/schedules" class="block text-center text-xs text-slate-300 hover:text-white">Cancel edit</a>
+          {% endif %}
+        </form>
+      </div>
+
+      <div class="overflow-hidden rounded-2xl border border-white/10 bg-black/30 md:col-span-2">
+        <table class="w-full text-sm">
+          <thead class="bg-slate-900 text-white">
+            <tr>
+              <th class="px-6 py-4 text-left">Day</th>
+              <th class="px-6 py-4 text-left">Class</th>
+              <th class="px-6 py-4 text-left">Time</th>
+              <th class="px-6 py-4 text-left">Room</th>
+              <th class="px-6 py-4 text-left">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-white/10">
+            {% for s in schedules %}
+            <tr class="hover:bg-white/5">
+              <td class="px-6 py-4 text-white font-semibold">{{ s["day"] }}</td>
+              <td class="px-6 py-4 text-slate-200">{{ s["class_name"] }}</td>
+              <td class="px-6 py-4 text-slate-200">{{ s["time"] }}</td>
+              <td class="px-6 py-4 text-slate-200">{{ s["room"] }}</td>
+              <td class="px-6 py-4">
+                <div class="flex flex-col gap-2 md:flex-row md:items-center">
+                  <a class="rounded-full border border-white/20 px-4 py-2 text-xs font-semibold text-slate-200 hover:bg-white/10" href="/admin/schedules?edit_id={{ s['id'] }}">Edit</a>
+                  <form method="POST" action="/admin/schedules/{{ s['id'] }}/delete" onsubmit="return confirm('Delete this schedule?');">
+                    <button type="submit" class="rounded-full border border-red-300/40 px-4 py-2 text-xs font-semibold text-red-300 hover:bg-red-500/10">Delete</button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

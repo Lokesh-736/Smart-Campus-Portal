@@ -5,6 +5,17 @@
 
 <div class="max-w-6xl mx-auto">
 
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+        <div class="mb-4 rounded-lg border p-3 text-sm
+            {% if category == 'danger' %} border-red-300 bg-red-50 text-red-700 {% endif %}
+            {% if category == 'success' %} border-emerald-300 bg-emerald-50 text-emerald-700 {% endif %}
+        ">
+            {{ message }}
+        </div>
+        {% endfor %}
+    {% endwith %}
+
     <!-- HEADER -->
     <div class="flex justify-between items-center mb-8 border-l-4 border-[#C8A951] pl-4">
         <div>
@@ -64,6 +75,9 @@
                     <th class="px-6 py-4">Subject</th>
                     <th class="px-6 py-4">Title</th>
                     <th class="px-6 py-4">Access</th>
+                    {% if session.get("role") == "teacher" %}
+                    <th class="px-6 py-4">Action</th>
+                    {% endif %}
                 </tr>
             </thead>
 
@@ -87,9 +101,20 @@
                             Download
                         </a>
                         {% else %}
-                        <span class="text-slate-400">Unavailable</span>
+                        <span class="text-slate-400">No file uploaded</span>
                         {% endif %}
                     </td>
+
+                    {% if session.get("role") == "teacher" %}
+                    <td class="px-6 py-4">
+                        <form method="GET" action="/delete_note/{{ note['id'] }}"
+                              onsubmit="return confirm('Delete this note permanently?');">
+                            <button class="bg-red-100 text-red-700 px-3 py-2 rounded-md text-xs font-semibold hover:bg-red-200">
+                                Delete
+                            </button>
+                        </form>
+                    </td>
+                    {% endif %}
 
                 </tr>
                 {% endfor %}

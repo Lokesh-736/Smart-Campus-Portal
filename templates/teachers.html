@@ -36,72 +36,67 @@
 
         </div>
 
-        <!-- TABLE CONTAINER -->
-        <div class="bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden">
+        <!-- PROFESSIONAL FACULTY LIST -->
+        <div class="space-y-6">
 
             {% if teachers and teachers|length > 0 %}
 
-            <div class="overflow-x-auto">
+            {% for teacher in teachers %}
+            <article class="rounded-xl border border-slate-200 bg-white p-8 shadow-sm">
+                <div class="grid gap-8 md:grid-cols-[260px_1fr]">
+                    <div>
+                        <p class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                            Faculty ID #{{ teacher["id"] }}
+                        </p>
 
-                <table class="w-full text-sm">
+                        <div class="mt-4 flex h-52 w-44 items-center justify-center overflow-hidden rounded-md border border-slate-300 bg-slate-100">
+                            {% if teacher["profile_image"] %}
+                            <img src="/uploads/{{ teacher['profile_image'] }}" alt="Teacher profile image"
+                                 class="h-full w-full object-cover">
+                            {% else %}
+                            <span class="text-4xl font-semibold text-slate-500">
+                                {{ teacher["username"][0]|upper }}
+                            </span>
+                            {% endif %}
+                        </div>
+                    </div>
 
-                    <!-- TABLE HEADER -->
-                    <thead class="bg-[#0B1F3A] text-white">
-                        <tr>
-                            <th class="px-6 py-4 text-left font-medium tracking-wide">Faculty ID</th>
-                            <th class="px-6 py-4 text-left font-medium tracking-wide">Faculty Name</th>
-                            <th class="px-6 py-4 text-left font-medium tracking-wide">Role</th>
-                        </tr>
-                    </thead>
+                    <div class="pt-8 md:pt-10">
+                        <dl class="space-y-7">
+                            <div>
+                                <dt class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">User Name</dt>
+                                <dd class="mt-1 text-2xl font-semibold text-[#0B1F3A]">
+                                    {{ teacher["full_name"] or teacher["username"] }}
+                                </dd>
+                            </div>
 
-                    <!-- TABLE BODY -->
-                    <tbody class="divide-y divide-slate-200">
+                            <div>
+                                <dt class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Subject</dt>
+                                <dd class="mt-1 text-lg font-medium text-slate-700">
+                                    {{ teacher["teacher_subject"] or "Not updated yet" }}
+                                </dd>
+                            </div>
 
-                        {% for teacher in teachers %}
-                        <tr class="group hover:bg-slate-50 transition duration-150">
-
-                            <!-- ID -->
-                            <td class="px-6 py-4 text-slate-600 font-medium">
-                                #{{ teacher["id"] }}
-                            </td>
-
-                            <!-- NAME -->
-                            <td class="px-6 py-4 flex items-center gap-3">
-
-                                <!-- Avatar -->
-                                <div class="w-9 h-9 rounded-full bg-[#0B1F3A] text-white flex items-center justify-center text-sm font-semibold">
-                                    {{ teacher["username"][0]|upper }}
-                                </div>
-
-                                <span class="font-semibold text-[#0B1F3A]">
-                                    {{ teacher["username"] }}
-                                </span>
-
-                            </td>
-
-                            <!-- ROLE -->
-                            <td class="px-6 py-4">
-
-                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold
-                                    bg-[#C8A951]/10 text-[#0B1F3A] group-hover:bg-[#C8A951]/20 transition">
-                                    {{ teacher["role"] }}
-                                </span>
-
-                            </td>
-
-                        </tr>
-                        {% endfor %}
-
-                    </tbody>
-
-                </table>
-
-            </div>
+                            <div>
+                                <dt class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Contact Email</dt>
+                                <dd class="mt-1 text-lg font-medium text-slate-700">
+                                    {% if teacher["email"] %}
+                                    <a href="mailto:{{ teacher['email'] }}" class="text-blue-700 hover:underline">{{ teacher["email"] }}</a>
+                                    {% else %}
+                                    Not available
+                                    {% endif %}
+                                </dd>
+                            </div>
+                        </dl>
+                    </div>
+                </div>
+            </article>
+            {% endfor %}
 
             {% else %}
 
             <!-- EMPTY STATE -->
-            <div class="p-14 text-center">
+            <div class="rounded-xl border border-slate-200 bg-white p-14 text-center shadow-sm">
 
                 <div class="text-4xl mb-3">👨‍🏫</div>
 

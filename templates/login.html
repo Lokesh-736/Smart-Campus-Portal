@@ -1,49 +1,39 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - Smart Campus</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
+<body class="min-h-screen bg-cover bg-center text-white" style="background-image: linear-gradient(to bottom, rgba(3, 6, 15, 0.84), rgba(3, 6, 15, 0.9)), url('https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&w=1800&q=80');">
+    <div class="mx-auto flex min-h-screen max-w-7xl items-center justify-center px-6">
+        <div class="w-full max-w-md rounded-2xl border border-white/15 bg-black/65 p-8 shadow-2xl backdrop-blur">
+            <p class="text-xs uppercase tracking-[0.3em] text-slate-300">Smart Campus</p>
+            <h2 class="mt-2 text-3xl font-semibold text-white">Welcome Back</h2>
+            <p class="mt-2 text-sm text-slate-300">Sign in to continue to your dashboard.</p>
 
-<body class="bg-gradient-to-br from-blue-900 to-blue-600 min-h-screen flex items-center justify-center">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% for category, message in messages %}
+            <p class="mt-4 rounded-lg border border-emerald-400/40 bg-emerald-500/10 p-2 text-center text-sm text-emerald-300">{{ message }}</p>
+            {% endfor %}
+            {% endwith %}
 
-<div class="bg-white w-[350px] p-8 rounded-2xl shadow-2xl">
+            <form method="POST" class="mt-6 space-y-3">
+                <input type="text" name="username" placeholder="Username" required class="w-full rounded-xl border border-white/20 bg-slate-900/70 px-4 py-3 text-slate-100 placeholder:text-slate-400">
+                <input type="password" name="password" placeholder="Password" required class="w-full rounded-xl border border-white/20 bg-slate-900/70 px-4 py-3 text-slate-100 placeholder:text-slate-400">
+                <select name="role" required class="w-full rounded-xl border border-white/20 bg-slate-900/70 px-4 py-3 text-slate-100">
+                    <option value="">Select Role</option>
+                    <option value="student">Student</option>
+                    <option value="teacher">Teacher</option>
+                    <option value="admin">Admin</option>
+                </select>
+                <button type="submit" class="w-full rounded-xl bg-blue-500 py-3 font-semibold text-white hover:bg-blue-400">Login</button>
+            </form>
 
-    <h2 class="text-2xl font-bold text-center text-blue-900 mb-6">
-        Login
-    </h2>
-
-    <!-- FLASH MESSAGES -->
-    {% with messages = get_flashed_messages(with_categories=true) %}
-    {% for category, message in messages %}
-    <p class="text-green-600 text-center mb-2">{{ message }}</p>
-    {% endfor %}
-    {% endwith %}
-
-    <form method="POST" class="space-y-3">
-
-        <!-- FIXED HERE -->
-        <input type="text" name="username" placeholder="Username" required>
-        <input type="password" name="password" placeholder="Password" required>
-
-        <select name="role" required>
-            <option value="">Select Role</option>
-            <option value="student">Student</option>
-            <option value="teacher">Teacher</option>
-        </select>
-
-        <button type="submit"
-            class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-bold">
-            Login
-        </button>
-
-    </form>
-
-    <a href="/signup" class="block text-center mt-4 text-blue-600 text-sm">
-        Create Account
-    </a>
-
-</div>
-
+            <a href="/signup" class="mt-4 block text-center text-sm text-blue-300 hover:text-blue-200">Create Account</a>
+            <a href="/admin_login" class="mt-2 block text-center text-xs text-slate-300 hover:text-white">Admin login</a>
+        </div>
+    </div>
 </body>
 </html>
