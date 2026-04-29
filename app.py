@@ -7,6 +7,7 @@ from datetime import date
 from werkzeug.utils import secure_filename
 import csv
 import io
+import requests
 
 app = Flask(__name__)
 app.secret_key = "smartcampus_secret_key"
@@ -29,15 +30,20 @@ def allowed_image(filename):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_IMAGE_EXTENSIONS
 
 # =========================
-# SARA AI
+# CHAT (RASA)
 # =========================
-@app.route("/sara_ai", methods=["POST"])
-def sara_ai():
-    data = request.get_json() or {}
-    message = data.get("message", "").strip()
-    message_lower = message.lower()
-
-    user_name = session.get("username", "Student")
+def _legacy_sara_reply(message: str) -> str:
+    message_lower = (message or "").lower()
+    role = (session.get("role") or "guest").lower()
+    user_name = (session.get("username") or "Guest").strip() or "Guest"
+    if role == "teacher":
+        who = f"Professor {user_name}"
+    elif role == "student":
+        who = f"Student {user_name}"
+    elif role == "admin":
+        who = f"Administrator {user_name}"
+    else:
+        who = user_name
 
     conn = get_db()
     cursor = conn.cursor()
@@ -53,57 +59,46 @@ def sara_ai():
     prep_keywords = ("prepare", "revision", "ready for class", "how to prepare")
 
     if any(word in message_lower for word in greeting_keywords):
-        reply = (
-            f"Hello {user_name}. I am Sara, your academic assistant. "
-            "I can help with schedules, class preparation, and uploaded notes."
+        return (
+            f"Good day, {who}. I’m your Smart Campus assistant. How may I assist you?"
         )
 
-    elif any(word in message_lower for word in schedule_keywords):
+    if any(word in message_lower for word in schedule_keywords):
         if not schedules:
-            reply = (
-                "I could not find any schedule entries yet. "
-                "Please ask your teacher to add classes in Schedule Management."
+            return (
+                f"{who}, I’m unable to find any schedule entries at the moment. "
+                "Please try again shortly or contact support if the issue persists."
             )
-        else:
-            lines = ["Here is your current class schedule:"]
-            for sch in schedules:
-                lines.append(
-                    f"- {sch['day']}: {sch['class_name']} at {sch['time']} in Room {sch['room']}"
-                )
 
-            prep_line = (
-                "Preparation tip: review the related notes before each class, "
-                "arrive 10 minutes early, and list 2 questions to ask in class."
-            )
-            reply = "\n".join(lines + ["", prep_line])
+        lines = ["Here is your current class schedule:"]
+        for sch in schedules:
+            lines.append(f"- {sch['day']}: {sch['class_name']} at {sch['time']} in Room {sch['room']}")
 
-    elif any(word in message_lower for word in notes_keywords):
+        prep_line = (
+            "Preparation tip: review the related notes before each class, "
+            "arrive 10 minutes early, and list 2 questions to ask in class."
+        )
+        return "\n".join(lines + ["", prep_line])
+
+    if any(word in message_lower for word in notes_keywords):
         if not notes:
-            reply = (
-                "No uploaded notes are available right now. "
-                "Please check later or ask your teacher to upload materials."
+            return (
+                f"{who}, there are no uploaded notes available at the moment. "
+                "Please check again later, or contact your instructor to upload materials."
             )
-        else:
-            lines = ["Here are the latest uploaded notes and resources:"]
-            for note in notes[:8]:
-                if note["file_path"]:
-                    lines.append(
-                        f"- {note['subject']} | {note['title']} -> /uploads/{note['file_path']}"
-                    )
-                else:
-                    lines.append(
-                        f"- {note['subject']} | {note['title']} -> file not attached yet"
-                    )
-            lines.append("")
-            lines.append(
-                "Study professionally: preview objectives first, read actively, "
-                "then summarize key points in your own words."
-            )
-            reply = "\n".join(lines)
+        lines = ["Here are the latest uploaded notes and resources:"]
+        for note in notes[:8]:
+            if note["file_path"]:
+                lines.append(f"- {note['subject']} | {note['title']} -> /uploads/{note['file_path']}")
+            else:
+                lines.append(f"- {note['subject']} | {note['title']} -> file not attached yet")
+        lines.append("")
+        lines.append("Study professionally: preview objectives first, read actively, then summarize key points.")
+        return "\n".join(lines)
 
-    elif any(word in message_lower for word in prep_keywords):
-        reply = (
-            "Professional class preparation checklist:\n"
+    if any(word in message_lower for word in prep_keywords):
+        return (
+            f"{who}, here is a professional class preparation checklist:\n"
             "1) Check tomorrow's schedule (day, subject, time, room).\n"
             "2) Open the uploaded notes for each subject.\n"
             "3) Spend 20-30 minutes reviewing key concepts.\n"
@@ -111,28 +106,89 @@ def sara_ai():
             "5) Keep required materials ready before class."
         )
 
-    elif "teacher" in message_lower or "faculty" in message_lower:
-        reply = (
-            "You can view the full faculty directory in the Teachers section. "
-            "If you need, ask me for schedule and preparation guidance too."
+    return (
+        f"{who}, how may I assist you today?"
+    )
+
+
+def _rasa_webhook_url() -> str:
+    base = os.environ.get("RASA_URL", "http://localhost:5005").rstrip("/")
+    return f"{base}/webhooks/rest/webhook"
+
+
+@app.route("/chat", methods=["POST"])
+def chat():
+    data = request.get_json() or {}
+    message = (data.get("message") or "").strip()
+    if not message:
+        return jsonify({"reply": "Please type a message."}), 400
+
+    sender = str(session.get("user_id") or data.get("sender") or "anonymous")
+    metadata = {
+        "user_id": session.get("user_id"),
+        "role": (session.get("role") or "guest"),
+        "username": (session.get("username") or "Guest"),
+        "page_path": (data.get("page_path") or ""),
+        "page_title": (data.get("page_title") or ""),
+    }
+
+    try:
+        resp = requests.post(
+            _rasa_webhook_url(),
+            json={"sender": sender, "message": message, "metadata": metadata},
+            timeout=12,
+        )
+        resp.raise_for_status()
+        items = resp.json() if resp.content else []
+        texts = []
+        buttons = []
+        for it in items:
+            t = (it or {}).get("text")
+            if t:
+                texts.append(str(t))
+            b = (it or {}).get("buttons") or []
+            if isinstance(b, list):
+                for btn in b:
+                    if not isinstance(btn, dict):
+                        continue
+                    title = (btn.get("title") or "").strip()
+                    payload = (btn.get("payload") or "").strip()
+                    if title and payload:
+                        buttons.append({"title": title, "payload": payload})
+        reply = "\n".join(texts).strip()
+        if not reply:
+            reply = "I’m here. Could you rephrase that question?"
+        # De-duplicate buttons by title+payload
+        seen = set()
+        uniq_buttons = []
+        for b in buttons:
+            key = (b["title"], b["payload"])
+            if key in seen:
+                continue
+            seen.add(key)
+            uniq_buttons.append(b)
+        return jsonify({"reply": reply, "buttons": uniq_buttons})
+    except Exception:
+        # If Rasa is offline/unavailable, keep chat usable.
+        return jsonify(
+            {
+                "reply": _legacy_sara_reply(message),
+                "buttons": [
+                    {"title": "Today’s Classes", "payload": "Do I have any classes today?"},
+                    {"title": "Tomorrow’s Classes", "payload": "Do I have any classes tomorrow?"},
+                    {"title": "Latest Notes", "payload": "Show my latest notes"},
+                    {"title": "Preparation Tips", "payload": "How should I prepare for class?"},
+                    {"title": "Announcements", "payload": "Any announcements?"},
+                    {"title": "Assignments", "payload": "Any assignments?"},
+                ],
+            }
         )
 
-    elif "hobby" in message_lower or "interest" in message_lower:
-        reply = (
-            "You can manage student interests in the Hobbies section. "
-            "Balanced academics plus interests improves long-term performance."
-        )
 
-    else:
-        reply = (
-            "I can assist professionally with:\n"
-            "- Your class schedule (day, subject, time, room)\n"
-            "- Uploaded notes and study resources\n"
-            "- Class preparation plans\n\n"
-            "Try asking: 'What is my schedule?' or 'How should I prepare for tomorrow's classes?'"
-        )
-
-    return jsonify({"reply": reply})
+# Backward-compatible endpoint (old frontend path)
+@app.route("/sara_ai", methods=["POST"])
+def sara_ai():
+    return chat()
 
 # =========================
 # HOME (FIXED)

@@ -1,0 +1,27 @@
+services:
+  rasa:
+    image: rasa/rasa:3.6.20
+    working_dir: /app
+    ports:
+      - "5005:5005"
+    volumes:
+      - ./rasa_bot:/app
+    command: >
+      run
+      --enable-api
+      --cors "*"
+      --debug
+    depends_on:
+      - action_server
+
+  action_server:
+    image: rasa/rasa-sdk:3.6.2
+    working_dir: /app
+    ports:
+      - "5055:5055"
+    volumes:
+      - ./rasa_bot/actions:/app/actions
+      - ./database.db:/app/database.db:ro
+    command: >
+      start
+      --actions actions

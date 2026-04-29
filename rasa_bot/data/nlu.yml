@@ -1,0 +1,134 @@
+version: "3.1"
+
+nlu:
+  - intent: greet
+    examples: |
+      - hi
+      - hello
+      - hey
+      - good morning
+      - good afternoon
+      - good evening
+      - hi assistant
+      - hello there
+      - good day
+      - hey assistant
+
+  - intent: goodbye
+    examples: |
+      - bye
+      - goodbye
+      - see you
+      - thanks bye
+      - talk to you later
+      - exit
+
+  - intent: thanks
+    examples: |
+      - thanks
+      - thank you
+      - appreciated
+      - great
+      - much appreciated
+      - thanks a lot
+
+  - intent: check_schedule
+    examples: |
+      - what is my schedule
+      - show my timetable
+      - class routine
+      - when is my class
+      - do I have any classes today
+      - do I have class today
+      - what classes do I have today
+      - today schedule
+      - today’s timetable
+      - tomorrow classes
+      - do I have any classes tomorrow
+      - schedule for tomorrow
+      - class timing and room
+      - schedule for this week
+      - what classes am I teaching today
+      - what classes am I teaching tomorrow
+      - am I scheduled to teach today
+      - upcoming classes
+      - next class details
+
+  - intent: view_notes
+    examples: |
+      - show notes
+      - latest notes
+      - study materials
+      - do we have pdf notes
+      - any uploaded resources
+      - notes for my subjects
+      - show the most recent notes
+      - open notes
+      - do we have any new materials
+      - any recent uploads
+      - notes uploaded today
+
+  - intent: class_preparation
+    examples: |
+      - how should I prepare for class
+      - preparation tips
+      - how to study for tomorrow
+      - revision plan
+      - help me prepare
+      - how do I prepare for my next class
+      - what should I revise today
+      - any advice for class preparation
+
+  - intent: check_announcements
+    examples: |
+      - any announcements
+      - show announcements
+      - latest announcement
+      - campus announcements
+      - any new updates
+      - what’s new today
+
+  - intent: check_assignments
+    examples: |
+      - any assignments
+      - show assignments
+      - do I have any homework
+      - pending assignments
+      - upcoming assignments
+      - assignment deadlines
+
+  - intent: ask_teachers
+    examples: |
+      - list teachers
+      - show faculty
+      - who are the teachers
+      - teacher directory
+
+  - intent: ask_students
+    examples: |
+      - list students
+      - show students
+      - student directory
+      - who are the students
+
+  - intent: ask_subjects
+    examples: |
+      - list subjects
+      - show subjects
+      - what subjects are available
+      - subject list
+
+  - intent: ask_profile_help
+    examples: |
+      - how to update my profile
+      - change my password
+      - update username
+      - how do I edit my profile
+      - profile help
+      - I want to update my profile details
+
+  - intent: bot_challenge
+    examples: |
+      - are you a bot
+      - are you real
+      - what are you

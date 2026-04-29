@@ -1,0 +1,71 @@
+version: "3.1"
+
+rules:
+  - rule: Greet
+    steps:
+      - intent: greet
+      - action: utter_greet
+
+  - rule: Goodbye
+    steps:
+      - intent: goodbye
+      - action: utter_goodbye
+
+  - rule: Thanks
+    steps:
+      - intent: thanks
+      - action: utter_thanks
+
+  - rule: Schedule
+    steps:
+      - intent: check_schedule
+      - action: action_get_schedule
+
+  - rule: Notes
+    steps:
+      - intent: view_notes
+      - action: action_list_notes
+
+  - rule: Announcements
+    steps:
+      - intent: check_announcements
+      - action: action_list_announcements
+
+  - rule: Assignments
+    steps:
+      - intent: check_assignments
+      - action: action_list_assignments
+
+  - rule: Preparation
+    steps:
+      - intent: class_preparation
+      - action: action_preparation_tips
+
+  - rule: Teachers
+    steps:
+      - intent: ask_teachers
+      - action: action_list_teachers
+
+  - rule: Students
+    steps:
+      - intent: ask_students
+      - action: action_list_students
+
+  - rule: Subjects
+    steps:
+      - intent: ask_subjects
+      - action: action_list_subjects
+
+  - rule: Profile help
+    steps:
+      - intent: ask_profile_help
+      - action: action_profile_help
+
+  - rule: Bot challenge
+    steps:
+      - intent: bot_challenge
+      - action: utter_bot_challenge
+
+  - rule: Fallback
+    steps:
+      - action: utter_fallback

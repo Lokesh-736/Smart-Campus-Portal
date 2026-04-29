@@ -185,6 +185,25 @@
                 messages.scrollTop = messages.scrollHeight;
             }
 
+            function appendButtons(buttons) {
+                if (!Array.isArray(buttons) || buttons.length === 0) return;
+                const wrap = document.createElement("div");
+                wrap.className = "mr-8 mt-1 flex flex-wrap gap-2";
+                buttons.slice(0, 6).forEach((b) => {
+                    const btn = document.createElement("button");
+                    btn.type = "button";
+                    btn.className = "rounded-full border border-white/20 bg-slate-900 px-3 py-1.5 text-xs text-slate-200 hover:bg-white/10";
+                    btn.textContent = b.title || "Option";
+                    btn.addEventListener("click", () => {
+                        input.value = (b.payload || "").replace(/^\/+/, "");
+                        sendMessage();
+                    });
+                    wrap.appendChild(btn);
+                });
+                messages.appendChild(wrap);
+                messages.scrollTop = messages.scrollHeight;
+            }
+
             async function sendMessage() {
                 const text = input.value.trim();
                 if (!text) return;
@@ -192,13 +211,18 @@
                 input.value = "";
 
                 try {
-                    const response = await fetch("/sara_ai", {
+                    const response = await fetch("/chat", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ message: text })
+                        body: JSON.stringify({
+                            message: text,
+                            page_path: window.location.pathname,
+                            page_title: document.title
+                        })
                     });
                     const data = await response.json();
                     appendMessage(data.reply || "I could not process that right now.", false);
+                    appendButtons(data.buttons || []);
                 } catch (error) {
                     appendMessage("Network issue. Please try again.", false);
                 }

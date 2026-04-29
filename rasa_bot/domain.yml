@@ -1,0 +1,43 @@
+version: "3.1"
+
+intents:
+  - greet
+  - goodbye
+  - thanks
+  - check_schedule
+  - view_notes
+  - check_announcements
+  - check_assignments
+  - class_preparation
+  - ask_teachers
+  - ask_students
+  - ask_subjects
+  - ask_profile_help
+  - bot_challenge
+
+responses:
+  utter_greet:
+    - text: "Good day. I’m your Smart Campus assistant. How may I assist you?"
+  utter_goodbye:
+    - text: "Goodbye. If you need anything further, please let me know."
+  utter_thanks:
+    - text: "You’re welcome. What would you like to do next?"
+  utter_bot_challenge:
+    - text: "I’m an AI assistant integrated with your Smart Campus portal."
+  utter_fallback:
+    - text: "I’m sorry — I didn’t fully understand. You can ask about today’s classes, latest notes, announcements, assignments, teachers, or subjects."
+
+actions:
+  - action_get_schedule
+  - action_list_notes
+  - action_list_announcements
+  - action_list_assignments
+  - action_preparation_tips
+  - action_list_teachers
+  - action_list_students
+  - action_list_subjects
+  - action_profile_help
+
+session_config:
+  session_expiration_time: 60
+  carry_over_slots_to_new_session: true
