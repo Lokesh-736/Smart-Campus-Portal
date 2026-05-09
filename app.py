@@ -2,8 +2,10 @@ from flask import send_from_directory, Flask, render_template, request, jsonify,
 import os
 import database
 import sqlite3
-import uuid 
-from datetime import date
+import uuid
+from datetime import date, datetime, timedelta
+
+import campus_navigation as campus_nav
 from werkzeug.utils import secure_filename
 import csv
 import io
@@ -32,6 +34,35 @@ def allowed_image(filename):
 # =========================
 # CHAT (RASA)
 # =========================
+def _sara_reply_looks_like_stacked_menu(text: str | None) -> bool:
+    if not text:
+        return False
+    lower = text.lower()
+    cues = ["today's classes", "tomorrow's classes", "latest notes", "preparation tips"]
+    hits = sum(1 for cue in cues if cue in lower)
+    return hits >= 3
+
+
+def _fallback_chat_quick_actions():
+    """Short button labels → concrete questions the legacy NLP understands."""
+    return [
+        {"title": "Today's timetable", "payload": "Show timetable for today"},
+        {"title": "Next class & travel time", "payload": "What is my next class and walking time?"},
+        {"title": "Latest notes", "payload": "Show latest notes"},
+        {"title": "Prep checklist", "payload": "How should I prepare for class?"},
+    ]
+
+
+def _chat_day_anchor(message_lower: str, ref: datetime) -> datetime:
+    if "tomorrow" in message_lower:
+        return ref + timedelta(days=1)
+    if "next week" in message_lower:
+        return ref + timedelta(days=7)
+    if "yesterday" in message_lower:
+        return ref - timedelta(days=1)
+    return ref
+
+
 def _legacy_sara_reply(message: str) -> str:
     message_lower = (message or "").lower()
     role = (session.get("role") or "guest").lower()
@@ -44,70 +75,187 @@ def _legacy_sara_reply(message: str) -> str:
         who = f"Administrator {user_name}"
     else:
         who = user_name
+    casual_name = user_name.split()[0]
 
     conn = get_db()
     cursor = conn.cursor()
-    cursor.execute("SELECT day, class_name, time, room FROM schedules ORDER BY id ASC")
+    cursor.execute("SELECT id, day, class_name, time, room FROM schedules ORDER BY day ASC, time ASC")
     schedules = cursor.fetchall()
     cursor.execute("SELECT subject, title, file_path FROM notes ORDER BY id DESC")
     notes = cursor.fetchall()
     conn.close()
 
     greeting_keywords = ("hello", "hi", "hey", "good morning", "good afternoon", "good evening")
-    schedule_keywords = ("schedule", "routine", "timetable", "class timing", "my class")
+    schedule_keywords = (
+        "schedule",
+        "routine",
+        "timetable",
+        "time table",
+        "class timing",
+        "my class",
+        "classes today",
+        "classes tomorrow",
+    )
+    nav_keywords = (
+        "navigation",
+        "navigate",
+        "walking",
+        "walk time",
+        "travel time",
+        "next class",
+        "current class",
+        "route",
+        "how long to",
+        "time to reach",
+    )
     notes_keywords = ("note", "notes", "material", "study", "resource", "pdf")
     prep_keywords = ("prepare", "revision", "ready for class", "how to prepare")
 
     if any(word in message_lower for word in greeting_keywords):
         return (
-            f"Good day, {who}. I’m your Smart Campus assistant. How may I assist you?"
+            f"Hey {casual_name} — Sara, your Smart Campus assistant.\n"
+            "Tell me what you need in one line (timetable, next class navigation, notes, prep tips). "
+            "Use the shortcuts below."
         )
+
+    if any(word in message_lower for word in nav_keywords):
+        clock = datetime.now()
+        anchor = _chat_day_anchor(message_lower, clock)
+        day_sessions = campus_nav.iter_parsed_sessions_for_day(schedules, anchor)
+        day_label = campus_nav.normalize_weekday(anchor.strftime("%A")) or anchor.strftime("%A")
+        chunks: list[str] = []
+
+        if anchor.date() != clock.date():
+            if not day_sessions:
+                return f"{who}, nothing parsed for {day_label} ({anchor.strftime('%d %b')})."
+
+            chunks.append(
+                f"Planner view — {day_label}, {anchor.strftime('%d %b')} "
+                "(travel estimated between consecutive sessions only)."
+            )
+
+            ordered = sorted(day_sessions, key=lambda s: s.start)
+            first = ordered[0]
+            m0 = campus_nav.resolve_room(first.room)
+            chunks.append(
+                f"Starts with {first.subject} at "
+                f"{campus_nav.describe_room(m0) if m0 else first.room}: "
+                f"{first.start.strftime('%H:%M')}–{first.end.strftime('%H:%M')}."
+            )
+
+            if len(ordered) > 1:
+                second = ordered[1]
+                m1 = campus_nav.resolve_room(second.room)
+                loc1 = campus_nav.describe_room(m1) if m1 else second.room
+                fmt = campus_nav.format_travel_minutes(
+                    campus_nav.estimate_travel_seconds(first.room, second.room)
+                )
+                chunks.append(
+                    f"Then {second.subject} at {loc1} ({second.start.strftime('%H:%M')}). "
+                    f"Rough walk allowance: ~{fmt or '?'}."
+                )
+                hints = "; ".join(campus_nav.shortest_path_hints(first.room, second.room)[:3])
+                if hints:
+                    chunks.append(hints)
+
+            return "\n".join(chunks)
+
+        snap = campus_nav.build_navigation_brief(schedules, now=clock)
+        if snap.current:
+            chunks.append(
+                f"Current class: {snap.current.subject} ({snap.current.room}) "
+                f"until {snap.current.end.strftime('%H:%M')}."
+            )
+        if snap.next_session:
+            meta = campus_nav.resolve_room(snap.next_session.room)
+            loc_full = campus_nav.describe_room(meta) if meta else snap.next_session.room
+            chunks.append(
+                f"Next class: {snap.next_session.subject} ({snap.next_session.room}) — "
+                f"{snap.next_session.start.strftime('%H:%M')}–{snap.next_session.end.strftime('%H:%M')} · {loc_full}"
+            )
+
+            if snap.travel_message:
+                chunks.append(snap.travel_message)
+            elif snap.travel_seconds is None:
+                chunks.append(
+                    "Walk estimate unavailable — use official room codes (e.g., TR-05, LT-03) matching `campus_rooms.json`."
+                )
+            if snap.late_for_next:
+                chunks.append("Warning: projected late arrival if you leave immediately.")
+            elif snap.urgency_message:
+                chunks.append(snap.urgency_message)
+            hints = "; ".join(snap.path_hints[:4])
+            if hints:
+                chunks.append(hints)
+        else:
+            if snap.current:
+                chunks.append("No further parsed sessions listed after your current slot today.")
+            elif day_sessions:
+                chunks.append(f"No upcoming classes remaining today ({day_label}) — timetable may continue after parsed rows.")
+            else:
+                chunks.append(
+                    "No parsed timetable for today — ensure rows include weekday labels and clocks like `10:30-11:30`."
+                )
+
+        return "\n".join(chunks) if chunks else f"{who}, navigation data not available yet."
 
     if any(word in message_lower for word in schedule_keywords):
         if not schedules:
             return (
-                f"{who}, I’m unable to find any schedule entries at the moment. "
-                "Please try again shortly or contact support if the issue persists."
+                f"{who}, schedules are empty. Ask faculty or admin to publish your weekly timetable "
+                "(day, subject, time like 10:00–11:00, room)."
             )
 
-        lines = ["Here is your current class schedule:"]
-        for sch in schedules:
-            lines.append(f"- {sch['day']}: {sch['class_name']} at {sch['time']} in Room {sch['room']}")
+        anchor = _chat_day_anchor(message_lower, datetime.now())
+        day_sessions = campus_nav.iter_parsed_sessions_for_day(schedules, anchor)
+        if not day_sessions:
+            lbl = campus_nav.normalize_weekday(anchor.strftime("%A")) or anchor.strftime("%A")
+            return (
+                f"No classes parsed for {lbl}. Either it is free or timetable rows "
+                'need weekday + time ranges (e.g. Monday, 09:00-10:30, TR-05).'
+            )
 
-        prep_line = (
-            "Preparation tip: review the related notes before each class, "
-            "arrive 10 minutes early, and list 2 questions to ask in class."
-        )
-        return "\n".join(lines + ["", prep_line])
+        lbl = campus_nav.normalize_weekday(anchor.strftime("%A")) or anchor.strftime("%A")
+        lines = [
+            f"Classes on {lbl} ({anchor.strftime('%d %b')}):",
+            campus_nav.briefly_list_sessions(day_sessions),
+            "",
+            "Tip: arrive ≈10 minutes early; open linked notes beforehand.",
+        ]
+        return "\n".join(lines)
 
     if any(word in message_lower for word in notes_keywords):
         if not notes:
             return (
-                f"{who}, there are no uploaded notes available at the moment. "
-                "Please check again later, or contact your instructor to upload materials."
+                f"{who}, no notes uploaded yet — ask lecturers to attach PDFs/resources."
             )
-        lines = ["Here are the latest uploaded notes and resources:"]
+        lines = ["Latest notes uploaded on the portal:"]
         for note in notes[:8]:
-            if note["file_path"]:
-                lines.append(f"- {note['subject']} | {note['title']} -> /uploads/{note['file_path']}")
-            else:
-                lines.append(f"- {note['subject']} | {note['title']} -> file not attached yet")
+            path = note["file_path"]
+            bullet = (
+                f"• {note['subject']} — {note['title']} (open Notes in sidebar)"
+                + ("" if path else " (attachment pending)")
+            )
+            lines.append(bullet)
         lines.append("")
-        lines.append("Study professionally: preview objectives first, read actively, then summarize key points.")
+        lines.append(
+            "Open the Notes page from the sidebar to browse and download attachments."
+        )
         return "\n".join(lines)
 
     if any(word in message_lower for word in prep_keywords):
         return (
-            f"{who}, here is a professional class preparation checklist:\n"
-            "1) Check tomorrow's schedule (day, subject, time, room).\n"
-            "2) Open the uploaded notes for each subject.\n"
-            "3) Spend 20-30 minutes reviewing key concepts.\n"
-            "4) Write quick revision bullets and at least 2 doubts.\n"
-            "5) Keep required materials ready before class."
+            f"{who}, quick checklist before class:\n"
+            "1) Glance timetable + locate block/floor codes (ING / Wolverhampton / HCK).\n"
+            "2) Skim lecture notes/objectives.\n"
+            "3) List two questions.\n"
+            "4) Pack devices + chargers + ID.\n"
+            "5) Use the dashboard navigator to gauge walking time early."
         )
 
     return (
-        f"{who}, how may I assist you today?"
+        f"{casual_name}, I'm here for timetables, walking-time estimates between rooms, notes, prep tips "
+        "(use the shortcuts below)."
     )
 
 
@@ -156,32 +304,29 @@ def chat():
                     if title and payload:
                         buttons.append({"title": title, "payload": payload})
         reply = "\n".join(texts).strip()
+        forced_legacy_buttons = False
+        if _sara_reply_looks_like_stacked_menu(reply):
+            reply = _legacy_sara_reply(message)
+            forced_legacy_buttons = True
         if not reply:
             reply = "I’m here. Could you rephrase that question?"
-        # De-duplicate buttons by title+payload
-        seen = set()
-        uniq_buttons = []
-        for b in buttons:
-            key = (b["title"], b["payload"])
-            if key in seen:
-                continue
-            seen.add(key)
-            uniq_buttons.append(b)
+        if forced_legacy_buttons:
+            uniq_buttons = _fallback_chat_quick_actions()
+        else:
+            # De-duplicate buttons by title+payload
+            seen = set()
+            uniq_buttons = []
+            for b in buttons:
+                key = (b["title"], b["payload"])
+                if key in seen:
+                    continue
+                seen.add(key)
+                uniq_buttons.append(b)
         return jsonify({"reply": reply, "buttons": uniq_buttons})
     except Exception:
         # If Rasa is offline/unavailable, keep chat usable.
         return jsonify(
-            {
-                "reply": _legacy_sara_reply(message),
-                "buttons": [
-                    {"title": "Today’s Classes", "payload": "Do I have any classes today?"},
-                    {"title": "Tomorrow’s Classes", "payload": "Do I have any classes tomorrow?"},
-                    {"title": "Latest Notes", "payload": "Show my latest notes"},
-                    {"title": "Preparation Tips", "payload": "How should I prepare for class?"},
-                    {"title": "Announcements", "payload": "Any announcements?"},
-                    {"title": "Assignments", "payload": "Any assignments?"},
-                ],
-            }
+            {"reply": _legacy_sara_reply(message), "buttons": _fallback_chat_quick_actions()},
         )
 
 
@@ -545,10 +690,29 @@ def student_dashboard():
         return redirect(url_for("login"))
     conn = get_db()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM schedules ORDER BY id DESC")
-    schedules = cursor.fetchall()
+    cursor.execute("SELECT * FROM schedules ORDER BY id ASC")
+    schedules_all = cursor.fetchall()
     conn.close()
-    return render_template("dashboard.html", schedules=schedules)
+
+    wd = datetime.now().strftime("%A")
+    canon_wd = campus_nav.normalize_weekday(wd)
+    today_focus = [
+        row
+        for row in schedules_all
+        if campus_nav.normalize_weekday(row["day"]) == canon_wd
+    ]
+    schedule_preview_rows = today_focus if today_focus else list(schedules_all)[:15]
+
+    nav_brief = campus_nav.build_navigation_brief(schedules_all)
+    show_today_banner = bool(today_focus)
+
+    return render_template(
+        "dashboard.html",
+        schedules=schedule_preview_rows,
+        nav_brief=nav_brief,
+        schedule_preview_is_today=show_today_banner,
+        schedule_preview_total=len(schedules_all),
+    )
 
 
 # =========================
@@ -556,7 +720,10 @@ def student_dashboard():
 # =========================
 @app.route("/students")
 def students():
-    if session.get("role") not in ["student", "teacher"]:
+    role = session.get("role")
+    if role == "student":
+        return redirect(url_for("student_dashboard"))
+    if role != "teacher":
         return redirect(url_for("login"))
     conn = get_db()
     cursor = conn.cursor()

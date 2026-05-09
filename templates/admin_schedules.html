@@ -29,10 +29,10 @@
       <div class="rounded-2xl border border-white/10 bg-black/30 p-6 md:col-span-1">
         <h2 class="text-lg font-semibold text-white">{{ "Edit Schedule" if edit_schedule else "Add Schedule" }}</h2>
         <form method="POST" action="{{ '/admin/schedules/%s/update'|format(edit_schedule['id']) if edit_schedule else '/admin/schedules/add' }}" class="mt-4 space-y-3">
-          <input type="text" name="day" placeholder="Day (e.g. Sunday)" value="{{ edit_schedule['day'] if edit_schedule else '' }}" required>
-          <input type="text" name="class_name" placeholder="Class name" value="{{ edit_schedule['class_name'] if edit_schedule else '' }}" required>
-          <input type="text" name="time" placeholder="Time (e.g. 10:00 AM)" value="{{ edit_schedule['time'] if edit_schedule else '' }}" required>
-          <input type="text" name="room" placeholder="Room" value="{{ edit_schedule['room'] if edit_schedule else '' }}" required>
+          <input type="text" name="day" placeholder="Day e.g. Monday" value="{{ edit_schedule['day'] if edit_schedule else '' }}" required>
+          <input type="text" name="class_name" placeholder="Subject / class name" value="{{ edit_schedule['class_name'] if edit_schedule else '' }}" required>
+          <input type="text" name="time" placeholder="e.g. 10:30-11:30 or 10:30 AM - 11:30 AM" value="{{ edit_schedule['time'] if edit_schedule else '' }}" required>
+          <input type="text" name="room" placeholder="Room code TR-05, LT-03, LZ-01…" value="{{ edit_schedule['room'] if edit_schedule else '' }}" required>
           <button type="submit" class="w-full rounded-xl bg-blue-500 py-3 text-sm font-semibold text-white hover:bg-blue-400">
             {{ "Update" if edit_schedule else "Add" }}
           </button>

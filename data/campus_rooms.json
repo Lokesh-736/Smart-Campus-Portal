@@ -1,0 +1,51 @@
+{
+  "rooms": [
+    {"code": "TR-14", "title": "Tutorial Room 14", "block": "ING", "floor": 1},
+    {"code": "TR-15", "title": "Tutorial Room 15", "block": "ING", "floor": 1},
+    {"code": "TR-16", "title": "Tutorial Room 16", "block": "ING", "floor": 1},
+    {"code": "TR-17", "title": "Tutorial Room 17", "block": "ING", "floor": 1},
+    {"code": "TR-18", "title": "Tutorial Room 18", "block": "ING", "floor": 1},
+    {"code": "TR-19", "title": "Tutorial Room 19", "block": "ING", "floor": 1},
+    {"code": "TR-20", "title": "Tutorial Room 20", "block": "ING", "floor": 1},
+    {"code": "TR-21", "title": "Tutorial Room 21", "block": "ING", "floor": 1},
+    {"code": "TR-22", "title": "Tutorial Room 22", "block": "ING", "floor": 1},
+    {"code": "PAT", "title": "PAT Office", "block": "ING", "floor": 1},
+    {"code": "REST-ING", "title": "Restrooms", "block": "ING", "floor": 1},
+
+    {"code": "LT-01", "title": "Wulfruna", "block": "Wolverhampton", "floor": 1},
+    {"code": "TR-01", "title": "Dudley", "block": "Wolverhampton", "floor": 1},
+    {"code": "SR-01", "title": "Bantock", "block": "Wolverhampton", "floor": 1},
+    {"code": "SR-02", "title": "Bilston", "block": "Wolverhampton", "floor": 1},
+    {"code": "LT-02", "title": "Telford", "block": "Wolverhampton", "floor": 2},
+    {"code": "TR-02", "title": "Stafford", "block": "Wolverhampton", "floor": 2},
+    {"code": "LAB-01", "title": "Mander", "block": "Wolverhampton", "floor": 2},
+    {"code": "LAB-02", "title": "Moseley", "block": "Wolverhampton", "floor": 2},
+    {"code": "LT-03", "title": "Walsall", "block": "Wolverhampton", "floor": 3},
+    {"code": "TR-03", "title": "West Bromwich", "block": "Wolverhampton", "floor": 3},
+    {"code": "SR-03", "title": "Wolves", "block": "Wolverhampton", "floor": 3},
+    {"code": "SR-04", "title": "Crompton", "block": "Wolverhampton", "floor": 3},
+
+    {"code": "LZ-01", "title": "Learning Zone", "block": "HCK", "floor": 1},
+
+    {"code": "TR-04", "title": "Kamal Pokhari", "block": "HCK", "floor": 2},
+    {"code": "TR-05", "title": "Rani Pokhari", "block": "HCK", "floor": 2},
+    {"code": "TR-06", "title": "Naag Pokhari", "block": "HCK", "floor": 2},
+    {"code": "LAB-03", "title": "Gahana Pokhari", "block": "HCK", "floor": 3},
+    {"code": "LAB-04", "title": "Patan", "block": "HCK", "floor": 3},
+    {"code": "TR-07", "title": "Bhaktapur", "block": "HCK", "floor": 3},
+    {"code": "SSC", "title": "Student Services", "block": "HCK", "floor": 3},
+    {"code": "LAB-05", "title": "Basantapur", "block": "HCK", "floor": 4},
+    {"code": "TR-08", "title": "Kirtipur", "block": "HCK", "floor": 4},
+    {"code": "TR-09", "title": "Chandragiri", "block": "HCK", "floor": 4},
+    {"code": "TR-10", "title": "Phulchowki", "block": "HCK", "floor": 5},
+    {"code": "TR-11", "title": "Nagarjun", "block": "HCK", "floor": 5},
+    {"code": "TR-12", "title": "Shivapuri", "block": "HCK", "floor": 5},
+    {"code": "DEV-PLATFORM", "title": "Development Platform", "block": "HCK", "floor": 6}
+  ],
+  "notes": [
+    "Learning Zone coded as LZ-01 for timetable entry.",
+    "Restrooms on ING are REST-ING; PAT Office as PAT.",
+    "Student Services on HCK floor 3 is SSC.",
+    "Development Platform on HCK sixth floor is DEV-PLATFORM."
+  ]
+}

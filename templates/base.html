@@ -46,9 +46,31 @@
             <div>
                 <div class="flex items-center gap-3 border-b border-white/10 px-6 py-6">
                     <div class="flex h-11 w-11 items-center justify-center rounded-full border border-white/40 font-bold">SC</div>
-                    <div>
-                        <h1 class="text-lg font-semibold text-white">Smart Campus</h1>
-                        <p class="text-xs uppercase tracking-[0.25em] text-slate-400">Portal</p>
+                    <div class="min-w-0 flex-1">
+                        <h1 class="text-lg font-semibold text-white leading-tight">Smart Campus</h1>
+                        <p class="text-xs uppercase tracking-[0.25em] text-slate-400 mt-1">Portal</p>
+                        {% if session.get("role") == "student" %}
+                        <p class="mt-2 inline-block rounded-md border border-blue-400/30 bg-blue-500/10 px-2 py-1 text-[0.65rem] font-semibold uppercase tracking-wide text-blue-200">
+                            Student workspace
+                        </p>
+                        <p class="mt-2 text-[0.7rem] leading-snug text-slate-500">
+                            Official learner gateway for classes, timetables, and resources
+                        </p>
+                        {% elif session.get("role") == "teacher" %}
+                        <p class="mt-2 inline-block rounded-md border border-emerald-400/30 bg-emerald-500/10 px-2 py-1 text-[0.65rem] font-semibold uppercase tracking-wide text-emerald-200">
+                            Faculty workspace
+                        </p>
+                        <p class="mt-2 text-[0.7rem] leading-snug text-slate-500">
+                            Instructional portal for teaching, materials, and academic coordination
+                        </p>
+                        {% elif session.get("role") == "admin" %}
+                        <p class="mt-2 inline-block rounded-md border border-amber-400/30 bg-amber-500/10 px-2 py-1 text-[0.65rem] font-semibold uppercase tracking-wide text-amber-200">
+                            Administration console
+                        </p>
+                        <p class="mt-2 text-[0.7rem] leading-snug text-slate-500">
+                            Institutional oversight, configuration, and reporting
+                        </p>
+                        {% endif %}
                     </div>
                 </div>
 
@@ -77,7 +99,9 @@
                     {% endif %}
 
                     {% if session.get("role") != "admin" %}
-                    <a href="/students" class="block rounded-lg px-4 py-2 hover:bg-white/10">Students</a>
+                    {% if session.get("role") == "teacher" %}
+                    <a href="/students" class="block rounded-lg px-4 py-2 hover:bg-white/10">Student Directory</a>
+                    {% endif %}
                     <a href="/teachers" class="block rounded-lg px-4 py-2 hover:bg-white/10">Teachers</a>
                     <a href="/subjects" class="block rounded-lg px-4 py-2 hover:bg-white/10">Subjects</a>
                     <a href="/notes" class="block rounded-lg px-4 py-2 hover:bg-white/10">Notes</a>
@@ -97,12 +121,27 @@
         </aside>
 
         <main class="ml-72 min-h-screen p-6 md:p-8">
-            <div class="mb-6 flex items-center justify-between rounded-xl border border-white/10 bg-black/45 px-6 py-4">
+            <div class="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-xl border border-white/10 bg-black/45 px-6 py-4">
                 <div>
-                    <p class="text-xs uppercase tracking-[0.25em] text-slate-400">Campus Dashboard</p>
-                    <p class="text-lg font-semibold text-white">Academic Management Portal</p>
+                    {% if session.get("role") == "student" %}
+                    <p class="text-xs uppercase tracking-[0.25em] text-blue-300/90">Student experience</p>
+                    <p class="text-lg font-semibold text-white">Learner academic portal</p>
+                    <p class="mt-1 max-w-xl text-xs text-slate-400">You are signed in to the dedicated student environment of Smart Campus University.</p>
+                    {% elif session.get("role") == "teacher" %}
+                    <p class="text-xs uppercase tracking-[0.25em] text-emerald-300/90">Faculty experience</p>
+                    <p class="text-lg font-semibold text-white">Instructional staff portal</p>
+                    <p class="mt-1 max-w-xl text-xs text-slate-400">You are signed in to the faculty workspace for teaching operations and student support.</p>
+                    {% elif session.get("role") == "admin" %}
+                    <p class="text-xs uppercase tracking-[0.25em] text-amber-300/90">Administration</p>
+                    <p class="text-lg font-semibold text-white">Institutional management console</p>
+                    <p class="mt-1 max-w-xl text-xs text-slate-400">Signed-in administrators use this console for users, content, schedules, and compliance exports.</p>
+                    {% else %}
+                    <p class="text-xs uppercase tracking-[0.25em] text-slate-400">Smart Campus</p>
+                    <p class="text-lg font-semibold text-white">Academic management portal</p>
+                    <p class="mt-1 max-w-xl text-xs text-slate-400">Sign in to reach your organisation-specific workspace.</p>
+                    {% endif %}
                 </div>
-                <a href="/" class="rounded-full bg-blue-500 px-5 py-2 text-xs font-semibold text-white hover:bg-blue-400">Public Home</a>
+                <a href="/" class="shrink-0 rounded-full bg-blue-500 px-5 py-2 text-xs font-semibold text-white hover:bg-blue-400">Public home</a>
             </div>
 
             <div class="content-shell rounded-2xl border border-white/10 bg-black/35 p-4 md:p-6">
@@ -147,7 +186,7 @@
                 const line = document.createElement("div");
                 line.className = fromUser
                     ? "ml-8 rounded-lg bg-blue-500 p-2 text-right text-white"
-                    : "mr-8 rounded-lg bg-slate-800 p-2 text-slate-200";
+                    : "mr-8 whitespace-pre-wrap rounded-lg bg-slate-800 p-2 text-slate-200";
                 line.textContent = text;
                 messages.appendChild(line);
                 messages.scrollTop = messages.scrollHeight;

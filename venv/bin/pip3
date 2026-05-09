@@ -1,5 +1,5 @@
 #!/bin/sh
-'''exec' "/mnt/c/Users/khset/OneDrive/Desktop/org fyp/venv/bin/python" "$0" "$@"
+'''exec' "/mnt/c/Users/Trijan Ratna Shakya/Desktop/org fyp/venv/bin/python" "$0" "$@"
 ' '''
 # -*- coding: utf-8 -*-
 import re

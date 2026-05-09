@@ -58,11 +58,11 @@
                    value="{{ edit_schedule['class_name'] if edit_schedule else '' }}"
                    class="p-3 border rounded-lg">
 
-            <input type="text" name="time" required placeholder="Time (e.g. 10:00-11:00)"
+            <input type="text" name="time" required placeholder="Time e.g. 10:30-11:30 or 10:30 AM - 11:30 AM"
                    value="{{ edit_schedule['time'] if edit_schedule else '' }}"
                    class="p-3 border rounded-lg">
 
-            <input type="text" name="room" required placeholder="Room"
+            <input type="text" name="room" required placeholder="Room code e.g. TR-05, LT-03, LAB-03"
                    value="{{ edit_schedule['room'] if edit_schedule else '' }}"
                    class="p-3 border rounded-lg">
 
