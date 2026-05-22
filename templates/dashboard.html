@@ -32,15 +32,37 @@
 
     <div class="mt-6 grid gap-4 md:grid-cols-2">
         <div class="rounded-xl border border-white/10 bg-black/40 p-5">
-            <p class="text-xs uppercase tracking-widest text-slate-400">Current class</p>
             {% if nav_brief.current %}
+            <p class="text-xs uppercase tracking-widest text-slate-400">Current class</p>
             <p class="mt-3 text-lg font-semibold text-white">{{ nav_brief.current.subject }}</p>
             <p class="mt-1 text-sm text-slate-300">
                 Room <span class="font-mono text-emerald-200">{{ nav_brief.current.room }}</span>
                 · {{ nav_brief.current.start.strftime('%H:%M') }}–{{ nav_brief.current.end.strftime('%H:%M') }}
             </p>
+            {% elif nav_brief.phase == 'class_ended' and nav_brief.last_ended %}
+            <p class="text-xs uppercase tracking-widest text-rose-300/90">Last class</p>
+            <p class="mt-3 text-lg font-semibold text-white">{{ nav_brief.last_ended.subject }}</p>
+            <p class="mt-2 rounded-lg border border-rose-400/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-100">
+                Class ended · was {{ nav_brief.last_ended.start.strftime('%H:%M') }}–{{ nav_brief.last_ended.end.strftime('%H:%M') }}
+            </p>
+            <p class="mt-2 text-sm text-slate-400">
+                Room <span class="font-mono text-slate-300">{{ nav_brief.last_ended.room }}</span>
+            </p>
+            {% elif nav_brief.phase == 'day_complete' and nav_brief.last_ended %}
+            <p class="text-xs uppercase tracking-widest text-slate-400">Today</p>
+            <p class="mt-3 text-lg font-semibold text-white">Classes finished</p>
+            <p class="mt-2 text-sm text-slate-400">
+                Last: {{ nav_brief.last_ended.subject }} ({{ nav_brief.last_ended.start.strftime('%H:%M') }}–{{ nav_brief.last_ended.end.strftime('%H:%M') }})
+            </p>
+            {% elif nav_brief.phase == 'before_first' and nav_brief.next_session %}
+            <p class="text-xs uppercase tracking-widest text-slate-400">Before first class</p>
+            <p class="mt-3 text-sm text-slate-400">No class in session yet.</p>
+            <p class="mt-2 text-sm text-emerald-200">
+                First up: {{ nav_brief.next_session.subject }} at {{ nav_brief.next_session.start.strftime('%H:%M') }}
+            </p>
             {% else %}
-            <p class="mt-3 text-sm text-slate-400">You are outside a parsed class slot (free period or timetable not synced).</p>
+            <p class="text-xs uppercase tracking-widest text-slate-400">Current class</p>
+            <p class="mt-3 text-sm text-slate-400">Free period or no matching timetable for right now.</p>
             {% endif %}
         </div>
 
@@ -52,8 +74,13 @@
                 Room <span class="font-mono text-emerald-200">{{ nav_brief.next_session.room }}</span>
                 · {{ nav_brief.next_session.start.strftime('%H:%M') }}–{{ nav_brief.next_session.end.strftime('%H:%M') }}
             </p>
+            {% if nav_brief.minutes_until_next is not none and nav_brief.phase in ('class_ended', 'before_first') %}
+            <p class="mt-2 text-xs text-emerald-200/90">
+                Starts in {{ nav_brief.minutes_until_next }} minute{% if nav_brief.minutes_until_next != 1 %}s{% endif %}
+            </p>
+            {% endif %}
             {% else %}
-            <p class="mt-3 text-sm text-slate-400">No further parsed sessions ahead today.</p>
+            <p class="mt-3 text-sm text-slate-400">No further classes scheduled for today.</p>
             {% endif %}
         </div>
     </div>

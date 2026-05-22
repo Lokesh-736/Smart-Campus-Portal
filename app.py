@@ -1,5 +1,19 @@
 from flask import send_from_directory, Flask, render_template, request, jsonify, redirect, url_for, session, flash, Response
 import os
+
+# Load local .env (SMTP credentials, etc.) — not committed to git
+_env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
+if os.path.isfile(_env_path):
+    with open(_env_path, encoding="utf-8") as _f:
+        for _line in _f:
+            _line = _line.strip()
+            if not _line or _line.startswith("#") or "=" not in _line:
+                continue
+            _key, _, _val = _line.partition("=")
+            _key, _val = _key.strip(), _val.strip().strip('"').strip("'")
+            if _key and _key not in os.environ:
+                os.environ[_key] = _val
+
 import database
 import sqlite3
 import uuid
@@ -10,8 +24,13 @@ from werkzeug.utils import secure_filename
 import csv
 import io
 import requests
+import re
+
+import email_utils
 
 app = Flask(__name__)
+
+EMAIL_PATTERN = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
 app.secret_key = os.environ.get("cf956327d34de12ce9111078c0f51592", "smartcampus_secret_key")
 ALLOWED_IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
 
@@ -166,6 +185,10 @@ def _legacy_sara_reply(message: str) -> str:
                 f"Current class: {snap.current.subject} ({snap.current.room}) "
                 f"until {snap.current.end.strftime('%H:%M')}."
             )
+        elif snap.phase == "class_ended" and snap.ended_summary:
+            chunks.append(snap.ended_summary)
+        elif snap.phase == "day_complete" and snap.ended_summary:
+            chunks.append(snap.ended_summary)
         if snap.next_session:
             meta = campus_nav.resolve_room(snap.next_session.room)
             loc_full = campus_nav.describe_room(meta) if meta else snap.next_session.room
@@ -349,19 +372,54 @@ def home():
 @app.route("/signup", methods=["GET", "POST"])
 def signup():
     if request.method == "POST":
-        username = request.form["username"]
-        password = request.form["password"]
-        role = request.form["role"]
+        username = (request.form.get("username") or "").strip()
+        email = (request.form.get("email") or "").strip().lower()
+        password = request.form.get("password") or ""
+        role = request.form.get("role") or ""
 
-        success = database.add_user(username, password, role)
+        if not username or not password or role not in {"student", "teacher"}:
+            flash("Please fill in all required fields.", "danger")
+            return render_template("signup.html")
+
+        if not EMAIL_PATTERN.match(email):
+            flash("Please enter a valid email address.", "danger")
+            return render_template("signup.html")
+
+        if database.email_in_use(email):
+            flash("This email is already registered.", "danger")
+            return render_template("signup.html")
+
+        success, token = database.add_user(username, password, role, email)
 
         if success:
-            flash("Account created successfully!", "success")
-            return redirect(url_for("login"))
+            verify_url = url_for("verify_email", token=token, _external=True)
+            if email_utils.send_verification_email(email, verify_url):
+                flash("We sent a verification link to your email. Please verify before logging in.", "success")
+            else:
+                flash(
+                    "Account created, but email could not be sent. "
+                    "Configure SMTP_HOST, SMTP_USER, and SMTP_PASSWORD, or use the link below.",
+                    "warning",
+                )
+                session["dev_verify_url"] = verify_url
+            return redirect(url_for("verify_email_pending"))
         else:
-            flash("User already exists!", "danger")
+            flash("Username already exists!", "danger")
 
     return render_template("signup.html")
+
+
+@app.route("/verify-email-pending")
+def verify_email_pending():
+    dev_link = session.pop("dev_verify_url", None)
+    return render_template("verify_email_pending.html", dev_verify_url=dev_link)
+
+
+@app.route("/verify-email/<token>")
+def verify_email(token):
+    ok, message = database.verify_email_token(token)
+    flash(message, "success" if ok else "danger")
+    return redirect(url_for("login"))
 
 
 # =========================
@@ -370,9 +428,14 @@ def signup():
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        username = request.form["username"]
-        password = request.form["password"]
-        role = request.form["role"].lower()
+        username = (request.form.get("username") or "").strip()
+        email = (request.form.get("email") or "").strip().lower()
+        password = request.form.get("password") or ""
+        role = (request.form.get("role") or "").lower()
+
+        if email and not EMAIL_PATTERN.match(email):
+            flash("Please enter a valid email address.", "danger")
+            return render_template("login.html")
 
         conn = get_db()
         cursor = conn.cursor()
@@ -389,6 +452,18 @@ def login():
         conn.close()
 
         if user:
+            stored_email = (user["email"] or "").strip().lower()
+            if stored_email:
+                if stored_email != email:
+                    flash("Email does not match this account.", "danger")
+                    return render_template("login.html")
+                if user["verification_token"] and not user["email_verified"]:
+                    flash("Please verify your email before logging in. Check your inbox.", "danger")
+                    return render_template("login.html")
+            elif email:
+                flash("This account has no email on file. Leave email empty or update your profile.", "danger")
+                return render_template("login.html")
+
             session["user_id"] = user["id"]
             session["username"] = user["username"]
             session["role"] = user["role"]

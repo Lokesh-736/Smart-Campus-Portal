@@ -11,13 +11,14 @@
         <div class="w-full max-w-md rounded-2xl border border-white/15 bg-black/65 p-8 shadow-2xl backdrop-blur">
             <p class="text-xs uppercase tracking-[0.3em] text-slate-300">Smart Campus</p>
             <h2 class="mt-2 text-3xl font-semibold text-white">Create Account</h2>
-            <p class="mt-2 text-sm text-slate-300">Register as student or teacher.</p>
+            <p class="mt-2 text-sm text-slate-300">Register as student or teacher. We will email you a verification link.</p>
 
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% for category, message in messages %}
                     <div class="mt-4 rounded-lg border p-2 text-center text-sm
                         {% if category == 'danger' %} border-red-400/40 bg-red-500/10 text-red-300 {% endif %}
                         {% if category == 'success' %} border-emerald-400/40 bg-emerald-500/10 text-emerald-300 {% endif %}
+                        {% if category == 'warning' %} border-amber-400/40 bg-amber-500/10 text-amber-200 {% endif %}
                     ">
                         {{ message }}
                     </div>
@@ -26,7 +27,11 @@
 
             <form method="POST" class="mt-6 space-y-3">
                 <input type="text" name="username" placeholder="Username" required class="w-full rounded-xl border border-white/20 bg-slate-900/70 px-4 py-3 text-slate-100 placeholder:text-slate-400">
-                <input type="password" name="password" placeholder="Password" required class="w-full rounded-xl border border-white/20 bg-slate-900/70 px-4 py-3 text-slate-100 placeholder:text-slate-400">
+                <input type="email" name="email" placeholder="Email" required autocomplete="email" class="w-full rounded-xl border border-white/20 bg-slate-900/70 px-4 py-3 text-slate-100 placeholder:text-slate-400">
+                <div class="relative">
+                    <input type="password" id="signup-password" name="password" placeholder="Password" required class="w-full rounded-xl border border-white/20 bg-slate-900/70 px-4 py-3 pr-12 text-slate-100 placeholder:text-slate-400">
+                    <button type="button" data-password-toggle="signup-password" aria-label="Show password" class="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg px-2 py-1 text-xs text-slate-300 hover:bg-white/10 hover:text-white">Show</button>
+                </div>
                 <select name="role" required class="w-full rounded-xl border border-white/20 bg-slate-900/70 px-4 py-3 text-slate-100">
                     <option value="student">Student</option>
                     <option value="teacher">Teacher</option>
@@ -40,5 +45,17 @@
             </div>
         </div>
     </div>
+    <script>
+        document.querySelectorAll("[data-password-toggle]").forEach(function (btn) {
+            btn.addEventListener("click", function () {
+                var input = document.getElementById(btn.getAttribute("data-password-toggle"));
+                if (!input) return;
+                var show = input.type === "password";
+                input.type = show ? "text" : "password";
+                btn.textContent = show ? "Hide" : "Show";
+                btn.setAttribute("aria-label", show ? "Hide password" : "Show password");
+            });
+        });
+    </script>
 </body>
 </html>

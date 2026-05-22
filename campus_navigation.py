@@ -234,6 +234,15 @@ def parse_class_window(
     start = datetime.combine(day_d, time(sh, sm))
     end = datetime.combine(day_d, time(eh, em))
 
+    start_frag = m.group("start")
+    end_frag = m.group("end")
+    start_has_mer = start_frag.upper().strip().endswith(("AM", "PM"))
+    end_has_mer = end_frag.upper().strip().endswith(("AM", "PM"))
+
+    # e.g. 12:00-1:00 without AM/PM → treat end as afternoon same day
+    if end <= start and not start_has_mer and not end_has_mer and eh < 12 and sh >= 8:
+        end = datetime.combine(day_d, time(eh + 12, em))
+
     # Overnight session (uncommon)
     if end <= start:
         end += timedelta(days=1)
@@ -324,6 +333,10 @@ class NavigationBrief:
     current: ParsedSession | None
     next_session: ParsedSession | None
     previous: ParsedSession | None
+    last_ended: ParsedSession | None
+    phase: str
+    ended_summary: str | None
+    minutes_until_next: int | None
     travel_seconds: int | None
     travel_message: str | None
     path_hints: list[str]
@@ -348,6 +361,37 @@ def build_navigation_brief(schedule_rows: Sequence[Any], now: datetime | None = 
         if s.end <= now:
             previous = s
 
+    last_ended = None
+    phase = "free_period"
+    ended_summary = None
+    minutes_until_next = None
+
+    if current:
+        phase = "in_class"
+    elif not day_sessions:
+        phase = "no_schedule"
+    elif next_session and not previous:
+        phase = "before_first"
+        minutes_until_next = max(0, int((next_session.start - now).total_seconds() // 60))
+    elif previous and now >= previous.end:
+        last_ended = previous
+        if next_session:
+            phase = "class_ended"
+            minutes_until_next = max(0, int((next_session.start - now).total_seconds() // 60))
+            ended_summary = (
+                f"{previous.subject} ended at {previous.end.strftime('%H:%M')} "
+                f"(was scheduled {previous.start.strftime('%H:%M')}–{previous.end.strftime('%H:%M')})."
+            )
+        else:
+            phase = "day_complete"
+            ended_summary = (
+                f"{previous.subject} was your last class today "
+                f"({previous.start.strftime('%H:%M')}–{previous.end.strftime('%H:%M')}, ended {previous.end.strftime('%H:%M')})."
+            )
+    elif next_session:
+        phase = "before_first"
+        minutes_until_next = max(0, int((next_session.start - now).total_seconds() // 60))
+
     travel_seconds = None
     travel_message = None
     path_hints = []
@@ -358,6 +402,8 @@ def build_navigation_brief(schedule_rows: Sequence[Any], now: datetime | None = 
         origin_room = None
         if current:
             origin_room = current.room
+        elif last_ended:
+            origin_room = last_ended.room
         elif previous:
             origin_room = previous.room
 
@@ -367,7 +413,11 @@ def build_navigation_brief(schedule_rows: Sequence[Any], now: datetime | None = 
             dest_txt = describe_room(dest) if dest else f"Room {next_session.room} (unknown in campus catalog)"
             if travel_seconds is not None:
                 fmt = format_travel_minutes(travel_seconds)
-                travel_message = f"Next class: {next_session.subject} at {dest_txt}. Estimated time to reach: {fmt}."
+                prefix = "Last class has ended. " if phase == "class_ended" else ""
+                travel_message = (
+                    f"{prefix}Next class: {next_session.subject} at {dest_txt}. "
+                    f"Estimated walk: {fmt}."
+                )
             if origin_room:
                 path_hints = shortest_path_hints(origin_room, next_session.room)
 
@@ -380,17 +430,46 @@ def build_navigation_brief(schedule_rows: Sequence[Any], now: datetime | None = 
                     )
                 elif secs_until < travel_seconds + 120:
                     urgency_message = "Leave soon — you have under two minutes of buffer after travel time."
+                elif phase == "class_ended" and minutes_until_next is not None:
+                    if minutes_until_next == 0:
+                        urgency_message = "Your next class is starting now — head to the room below."
+                    else:
+                        urgency_message = (
+                            f"Next class starts in {minutes_until_next} minute"
+                            f"{'s' if minutes_until_next != 1 else ''}."
+                        )
+            elif phase == "class_ended" and minutes_until_next is not None:
+                if minutes_until_next == 0:
+                    urgency_message = "Your next class is starting now — head to the room below."
+                else:
+                    urgency_message = (
+                        f"Next class starts in {minutes_until_next} minute"
+                        f"{'s' if minutes_until_next != 1 else ''}."
+                    )
 
         else:
             dest = resolve_room(next_session.room)
             if dest:
+                prefix = "Last class has ended. " if phase == "class_ended" else ""
                 travel_message = (
-                    f"Next class: {next_session.subject} at {describe_room(dest)} "
+                    f"{prefix}Next class: {next_session.subject} at {describe_room(dest)} "
                     "(set an earlier session in your timetable for travel estimation)."
+                )
+            if phase == "class_ended" and minutes_until_next is not None and not urgency_message:
+                urgency_message = (
+                    f"Next class starts in {minutes_until_next} minute"
+                    f"{'s' if minutes_until_next != 1 else ''}."
                 )
 
     elif current:
         urgency_message = "No further classes parsed for today after this slot."
+    elif phase == "day_complete":
+        urgency_message = "No more classes scheduled for today."
+    elif phase == "before_first" and next_session and minutes_until_next is not None:
+        urgency_message = (
+            f"First class starts in {minutes_until_next} minute"
+            f"{'s' if minutes_until_next != 1 else ''}."
+        )
 
     return NavigationBrief(
         now=now,
@@ -399,6 +478,10 @@ def build_navigation_brief(schedule_rows: Sequence[Any], now: datetime | None = 
         current=current,
         next_session=next_session,
         previous=previous,
+        last_ended=last_ended,
+        phase=phase,
+        ended_summary=ended_summary,
+        minutes_until_next=minutes_until_next,
         travel_seconds=travel_seconds,
         travel_message=travel_message,
         path_hints=path_hints,

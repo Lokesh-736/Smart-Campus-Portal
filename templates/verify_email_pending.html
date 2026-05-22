@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify Email - Smart Campus</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen bg-cover bg-center text-white" style="background-image: linear-gradient(to bottom, rgba(3, 6, 15, 0.84), rgba(3, 6, 15, 0.9)), url('https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&w=1800&q=80');">
+    <div class="mx-auto flex min-h-screen max-w-7xl items-center justify-center px-6">
+        <div class="w-full max-w-md rounded-2xl border border-white/15 bg-black/65 p-8 shadow-2xl backdrop-blur">
+            <p class="text-xs uppercase tracking-[0.3em] text-slate-300">Smart Campus</p>
+            <h2 class="mt-2 text-3xl font-semibold text-white">Check Your Email</h2>
+            <p class="mt-2 text-sm text-slate-300">We sent a verification link. Open it to activate your account, then log in.</p>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% for category, message in messages %}
+                    <div class="mt-4 rounded-lg border p-2 text-center text-sm
+                        {% if category == 'danger' %} border-red-400/40 bg-red-500/10 text-red-300 {% endif %}
+                        {% if category == 'success' %} border-emerald-400/40 bg-emerald-500/10 text-emerald-300 {% endif %}
+                        {% if category == 'warning' %} border-amber-400/40 bg-amber-500/10 text-amber-200 {% endif %}
+                    ">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endwith %}
+
+            {% if dev_verify_url %}
+            <div class="mt-4 rounded-lg border border-amber-400/40 bg-amber-500/10 p-3 text-sm text-amber-100">
+                <p class="font-medium">Development verification link</p>
+                <a href="{{ dev_verify_url }}" class="mt-2 block break-all text-blue-300 hover:text-blue-200">{{ dev_verify_url }}</a>
+            </div>
+            {% endif %}
+
+            <a href="/login" class="mt-6 block w-full rounded-xl bg-blue-500 py-3 text-center font-semibold text-white hover:bg-blue-400">Go to Login</a>
+        </div>
+    </div>
+</body>
+</html>
