@@ -12,7 +12,7 @@ import io
 import requests
 
 app = Flask(__name__)
-app.secret_key = "smartcampus_secret_key"
+app.secret_key = os.environ.get("3d1a0d92610749f9bbdcf311ed29bfec", "smartcampus_secret_key")
 ALLOWED_IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
 
 def require_role(*roles):
