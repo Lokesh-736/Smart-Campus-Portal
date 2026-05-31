@@ -13,18 +13,6 @@
             <h2 class="mt-2 text-3xl font-semibold text-white">Check Your Email</h2>
             <p class="mt-2 text-sm text-slate-300">We sent a verification link. Open it to activate your account, then log in.</p>
 
-            {% with messages = get_flashed_messages(with_categories=true) %}
-                {% for category, message in messages %}
-                    <div class="mt-4 rounded-lg border p-2 text-center text-sm
-                        {% if category == 'danger' %} border-red-400/40 bg-red-500/10 text-red-300 {% endif %}
-                        {% if category == 'success' %} border-emerald-400/40 bg-emerald-500/10 text-emerald-300 {% endif %}
-                        {% if category == 'warning' %} border-amber-400/40 bg-amber-500/10 text-amber-200 {% endif %}
-                    ">
-                        {{ message }}
-                    </div>
-                {% endfor %}
-            {% endwith %}
-
             {% if dev_verify_url %}
             <div class="mt-4 rounded-lg border border-amber-400/40 bg-amber-500/10 p-3 text-sm text-amber-100">
                 <p class="font-medium">Development verification link</p>

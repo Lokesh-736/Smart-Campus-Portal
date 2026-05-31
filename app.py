@@ -393,14 +393,7 @@ def signup():
 
         if success:
             verify_url = url_for("verify_email", token=token, _external=True)
-            if email_utils.send_verification_email(email, verify_url):
-                flash("We sent a verification link to your email. Please verify before logging in.", "success")
-            else:
-                flash(
-                    "Account created, but email could not be sent. "
-                    "Configure SMTP_HOST, SMTP_USER, and SMTP_PASSWORD, or use the link below.",
-                    "warning",
-                )
+            if not email_utils.send_verification_email(email, verify_url):
                 session["dev_verify_url"] = verify_url
             return redirect(url_for("verify_email_pending"))
         else:
