@@ -5,57 +5,61 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sign Up - Smart Campus</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='auth-forms.css') }}">
 </head>
-<body class="min-h-screen bg-cover bg-center text-white" style="background-image: linear-gradient(to bottom, rgba(3, 6, 15, 0.84), rgba(3, 6, 15, 0.9)), url('https://images.unsplash.com/photo-1541339907198-e08756dedf3f?auto=format&fit=crop&w=1800&q=80');">
-    <div class="mx-auto flex min-h-screen max-w-7xl items-center justify-center px-6">
-        <div class="w-full max-w-md rounded-2xl border border-white/15 bg-black/65 p-8 shadow-2xl backdrop-blur">
-            <p class="text-xs uppercase tracking-[0.3em] text-slate-300">Smart Campus</p>
-            <h2 class="mt-2 text-3xl font-semibold text-white">Create Account</h2>
-            <p class="mt-2 text-sm text-slate-300">Register as student or teacher. We will email you a verification link.</p>
+<body class="min-h-screen bg-slate-950 text-white">
+    <div class="auth-container signup-page min-h-screen grid lg:grid-cols-2" id="authContainer">
+        <div class="auth-brand-panel hidden lg:flex flex-col justify-center items-center bg-gradient-to-br from-slate-900 to-blue-950 p-12">
+            <div class="text-6xl font-bold mb-4">SC</div>
+            <h1 class="text-3xl font-bold">Join Smart Campus</h1>
+            <p class="text-slate-400 mt-2 text-center max-w-xs">Register as a student or teacher. We'll email you a verification link.</p>
+        </div>
+        <div class="flex items-center justify-center p-8">
+            <div class="w-full max-w-md">
+                <h2 class="animation text-3xl font-semibold" style="--i:1">Create account</h2>
+                <p class="animation mt-2 text-sm text-slate-400" style="--i:2">Join the Smart Campus portal</p>
 
-            {% with messages = get_flashed_messages(with_categories=true) %}
-                {% for category, message in messages %}
-                    <div class="mt-4 rounded-lg border p-2 text-center text-sm
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% for category, message in messages %}
+                    <div class="animation mt-4 rounded-lg border p-2 text-center text-sm
                         {% if category == 'danger' %} border-red-400/40 bg-red-500/10 text-red-300 {% endif %}
                         {% if category == 'success' %} border-emerald-400/40 bg-emerald-500/10 text-emerald-300 {% endif %}
-                        {% if category == 'warning' %} border-amber-400/40 bg-amber-500/10 text-amber-200 {% endif %}
-                    ">
-                        {{ message }}
+                    " style="--i:3">{{ message }}</div>
+                    {% endfor %}
+                {% endwith %}
+
+                <form method="POST" class="form-box Register mt-8 space-y-4">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="animation" style="--i:4">
+                        <input type="text" name="username" placeholder="Username" required class="w-full rounded-xl border border-white/20 bg-slate-900 px-4 py-3">
                     </div>
-                {% endfor %}
-            {% endwith %}
-
-            <form method="POST" class="mt-6 space-y-3">
-                <input type="text" name="username" placeholder="Username" required class="w-full rounded-xl border border-white/20 bg-slate-900/70 px-4 py-3 text-slate-100 placeholder:text-slate-400">
-                <input type="email" name="email" placeholder="Email" required autocomplete="email" class="w-full rounded-xl border border-white/20 bg-slate-900/70 px-4 py-3 text-slate-100 placeholder:text-slate-400">
-                <div class="relative">
-                    <input type="password" id="signup-password" name="password" placeholder="Password" required class="w-full rounded-xl border border-white/20 bg-slate-900/70 px-4 py-3 pr-12 text-slate-100 placeholder:text-slate-400">
-                    <button type="button" data-password-toggle="signup-password" aria-label="Show password" class="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg px-2 py-1 text-xs text-slate-300 hover:bg-white/10 hover:text-white">Show</button>
-                </div>
-                <select name="role" required class="w-full rounded-xl border border-white/20 bg-slate-900/70 px-4 py-3 text-slate-100">
-                    <option value="student">Student</option>
-                    <option value="teacher">Teacher</option>
-                </select>
-                <button type="submit" class="w-full rounded-xl bg-blue-500 py-3 font-semibold text-white hover:bg-blue-400">Sign Up</button>
-            </form>
-
-            <div class="mt-4 text-center text-sm">
-                <p class="text-slate-300">Already have an account?</p>
-                <a href="/login" class="mt-1 block text-blue-300 hover:text-blue-200">Login Here</a>
+                    <div class="animation" style="--i:5">
+                        <input type="email" name="email" placeholder="Email" required class="w-full rounded-xl border border-white/20 bg-slate-900 px-4 py-3">
+                    </div>
+                    <div class="animation relative" style="--i:6">
+                        <input type="password" id="signup-password" name="password" placeholder="Password (8+ chars, 1 number)" required class="w-full rounded-xl border border-white/20 bg-slate-900 px-4 py-3 pr-12">
+                        <button type="button" data-password-toggle="signup-password" class="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400">Show</button>
+                    </div>
+                    <div class="animation grid grid-cols-2 gap-2" style="--i:7">
+                        <label class="cursor-pointer"><input type="radio" name="role" value="student" class="peer sr-only" required checked><span class="block rounded-xl border border-white/20 py-2 text-center text-sm peer-checked:border-blue-400 peer-checked:bg-blue-500/20">Student</span></label>
+                        <label class="cursor-pointer"><input type="radio" name="role" value="teacher" class="peer sr-only"><span class="block rounded-xl border border-white/20 py-2 text-center text-sm peer-checked:border-blue-400 peer-checked:bg-blue-500/20">Teacher</span></label>
+                    </div>
+                    <button type="submit" class="animation w-full rounded-xl bg-blue-500 py-3 font-semibold hover:bg-blue-400" style="--i:8">Sign Up</button>
+                </form>
+                <a href="/login" class="animation mt-4 block text-center text-sm text-blue-300" style="--i:9">Already have an account? Login</a>
             </div>
         </div>
     </div>
     <script>
-        document.querySelectorAll("[data-password-toggle]").forEach(function (btn) {
-            btn.addEventListener("click", function () {
-                var input = document.getElementById(btn.getAttribute("data-password-toggle"));
-                if (!input) return;
-                var show = input.type === "password";
-                input.type = show ? "text" : "password";
-                btn.textContent = show ? "Hide" : "Show";
-                btn.setAttribute("aria-label", show ? "Hide password" : "Show password");
+        document.querySelectorAll('[data-password-toggle]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const input = document.getElementById(btn.dataset.passwordToggle);
+                const show = input.type === 'password';
+                input.type = show ? 'text' : 'password';
+                btn.textContent = show ? 'Hide' : 'Show';
             });
         });
+        requestAnimationFrame(() => document.getElementById('authContainer').classList.add('active'));
     </script>
 </body>
 </html>

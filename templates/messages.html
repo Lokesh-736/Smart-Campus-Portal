@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="mb-6 text-3xl font-semibold text-white">Messages</h1>
+
+<div class="grid gap-6 lg:grid-cols-2">
+    <form method="POST" action="/messages/send" class="rounded-2xl border border-white/10 bg-black/30 p-6 space-y-3">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <h2 class="text-lg font-semibold text-white">Send message</h2>
+        <select name="receiver_id" required>
+            <option value="">Select recipient</option>
+            {% for u in users %}<option value="{{ u['id'] }}">{{ u['username'] }} ({{ u['role'] }})</option>{% endfor %}
+        </select>
+        <select name="subject" {% if role in ['teacher', 'admin'] %}required{% endif %}>
+            <option value="">{% if role in ['teacher', 'admin'] %}Select subject{% else %}(No subject){% endif %}</option>
+            {% for s in subjects %}
+            <option value="{{ s }}">{{ s }}</option>
+            {% endfor %}
+        </select>
+        {% if role in ['teacher', 'admin'] and not subjects %}
+        <p class="text-xs text-amber-300">No subjects found. Ask an admin to add subjects first.</p>
+        {% endif %}
+        <textarea name="body" rows="4" placeholder="Message" required></textarea>
+        <button type="submit" class="rounded-xl bg-blue-500 px-5 py-2 text-sm font-semibold text-white">Send</button>
+    </form>
+
+    <div class="space-y-3">
+        {% for m in messages %}
+        <div class="rounded-2xl border border-white/10 bg-black/30 p-4 {% if not m['is_read'] and m['receiver_id'] == session.user_id %}border-blue-400/40{% endif %}">
+            <p class="font-semibold text-white">{{ m['subject'] or '(No subject)' }}</p>
+            <p class="mt-1 text-sm text-slate-300">{{ m['body'] }}</p>
+            <p class="mt-2 text-xs text-slate-500">{{ m['sender_name'] }} → {{ m['receiver_name'] }} · {{ m['sent_at'] }}</p>
+        </div>
+        {% else %}
+        <p class="text-slate-400">No messages yet.</p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

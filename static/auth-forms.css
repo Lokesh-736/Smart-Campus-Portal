@@ -1,0 +1,40 @@
+.auth-container .animation {
+    transform: translateX(120%);
+    opacity: 0;
+    filter: blur(10px);
+    transition: transform 0.7s ease, opacity 0.7s ease, filter 0.7s ease;
+}
+
+.auth-container.signup-page .animation {
+    transform: translateX(-120%);
+}
+
+.auth-container.active .animation {
+    transform: translateX(0);
+    opacity: 1;
+    filter: blur(0);
+    transition-delay: calc(0.1s * var(--i, 1));
+}
+
+.auth-brand-panel {
+    opacity: 0;
+    transform: translateX(-40px);
+    transition: transform 0.8s ease, opacity 0.8s ease;
+}
+
+.auth-container.active .auth-brand-panel {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.form-box {
+    overflow: hidden;
+}
+
+.form-box.hidden-panel {
+    display: none;
+}
+
+.form-box.active-panel {
+    display: block;
+}

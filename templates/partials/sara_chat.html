@@ -1,0 +1,50 @@
+<link rel="stylesheet" href="{{ url_for('static', filename='sara-chat.css') }}">
+
+<button type="button" id="saraLauncher" class="sara-launcher no-print" aria-label="Open Sara AI assistant">
+    <span class="sara-launcher-icon">✦</span>
+    <span class="sara-launcher-label">Ask Sara</span>
+</button>
+
+<div id="saraPanel" class="sara-panel no-print" role="dialog" aria-label="Sara AI chat">
+    <header class="sara-panel-header">
+        <div class="sara-panel-brand">
+            <div class="sara-avatar" aria-hidden="true">✦</div>
+            <div>
+                <p class="sara-panel-title">Sara</p>
+                <p class="sara-panel-subtitle">Campus Copilot</p>
+            </div>
+        </div>
+        <div class="sara-panel-actions">
+            <button type="button" id="saraMinimize" class="sara-icon-btn" title="Minimize" aria-label="Minimize chat">—</button>
+            <button type="button" id="saraClose" class="sara-icon-btn" title="Close" aria-label="Close chat">✕</button>
+        </div>
+    </header>
+
+    <div id="saraMessages" class="sara-panel-body">
+        <div id="saraWelcome" class="sara-welcome">
+            <h3>Hi{% if session.get('username') %}, {{ session.get('username').split()[0] }}{% endif %} 👋</h3>
+            <p>I'm Sara — your Smart Campus assistant. Ask about schedules, notes, navigation, or anything on the portal.</p>
+            <div id="saraSuggestions" class="sara-suggestions">
+                <button type="button" class="sara-suggestion"></button>
+                <button type="button" class="sara-suggestion"></button>
+                <button type="button" class="sara-suggestion"></button>
+                <button type="button" class="sara-suggestion"></button>
+            </div>
+        </div>
+    </div>
+
+    <footer class="sara-panel-footer">
+        <div class="sara-composer">
+            <textarea id="saraInput" class="sara-input" rows="1" placeholder="Message Sara…" aria-label="Message Sara"></textarea>
+            <button type="button" id="saraSend" class="sara-send-btn" disabled aria-label="Send message">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M12 19V5"></path>
+                    <path d="M5 12l7-7 7 7"></path>
+                </svg>
+            </button>
+        </div>
+        <p class="sara-footer-note">Sara may make mistakes — verify important campus info.</p>
+    </footer>
+</div>
+
+<script src="{{ url_for('static', filename='sara-chat.js') }}" defer></script>

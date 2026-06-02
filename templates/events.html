@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="mb-6 text-3xl font-semibold text-white">Academic Calendar</h1>
+
+{% if role == 'admin' %}
+<form method="POST" action="/events/create" class="mb-6 rounded-2xl border border-white/10 bg-black/30 p-6 space-y-3">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input name="title" placeholder="Event title" required>
+    <input type="date" name="event_date" required>
+    <select name="event_type">
+        <option value="holiday">Holiday</option>
+        <option value="exam">Exam</option>
+        <option value="activity">Activity</option>
+    </select>
+    <textarea name="description" rows="2" placeholder="Description"></textarea>
+    <button type="submit" class="rounded-xl bg-blue-500 px-5 py-2 text-sm font-semibold text-white">Add event</button>
+</form>
+{% endif %}
+
+<div id="calendar" class="rounded-2xl border border-white/10 bg-black/30 p-4"></div>
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const el = document.getElementById('calendar');
+  const cal = new FullCalendar.Calendar(el, {
+    initialView: 'dayGridMonth',
+    height: 500,
+    events: [
+      {% for e in events %}
+      { title: {{ e['title']|tojson }}, start: {{ e['event_date']|tojson }}, extendedProps: { type: {{ e['event_type']|tojson }} } },
+      {% endfor %}
+    ],
+    eventDidMount: function(info) {
+      const t = info.event.extendedProps.type;
+      if (t === 'holiday') info.el.style.backgroundColor = '#dc2626';
+      if (t === 'exam') info.el.style.backgroundColor = '#d97706';
+      if (t === 'activity') info.el.style.backgroundColor = '#2563eb';
+    }
+  });
+  cal.render();
+});
+</script>
+{% endblock %}

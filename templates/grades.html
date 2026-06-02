@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="mb-6 text-3xl font-semibold text-white">Grades</h1>
+
+{% if role == 'student' %}
+<div class="mb-6 rounded-2xl bg-gradient-to-br from-blue-600 to-blue-800 p-6 text-white">
+    <p class="text-sm uppercase tracking-wide text-blue-200">GPA summary</p>
+    <p class="mt-2 text-4xl font-bold">{{ gpa }}</p>
+</div>
+{% endif %}
+
+{% if role in ['teacher', 'admin'] %}
+<form method="POST" action="/grades/add" class="mb-6 rounded-2xl border border-white/10 bg-black/30 p-6 space-y-3">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <select name="student_id" required>
+        <option value="">Student</option>
+        {% for s in students %}<option value="{{ s['id'] }}">{{ s['username'] }}</option>{% endfor %}
+    </select>
+    <select name="subject" required>
+        <option value="">Select subject</option>
+        {% for s in subjects %}
+        <option value="{{ s }}">{{ s }}</option>
+        {% endfor %}
+    </select>
+    {% if not subjects %}
+    <p class="text-xs text-amber-300">No subjects found. Ask an admin to add subjects first.</p>
+    {% endif %}
+    <input name="assignment_name" placeholder="Assignment name">
+    <input name="marks_obtained" type="number" step="0.01" placeholder="Marks obtained" required>
+    <input name="total_marks" type="number" step="0.01" placeholder="Total marks" required>
+    <button type="submit" class="rounded-xl bg-blue-500 px-5 py-2 text-sm font-semibold text-white">Record grade</button>
+</form>
+{% if role == 'admin' %}
+<a href="/admin/grades/export.csv" class="mb-4 inline-block text-sm text-blue-300">Export CSV</a>
+{% endif %}
+{% endif %}
+
+<div class="data-table overflow-x-auto rounded-2xl border border-white/10 bg-slate-900/60">
+    <table class="w-full text-sm">
+        <thead class="border-b border-white/10 text-xs uppercase text-slate-400">
+            <tr>
+                {% if role != 'student' %}<th class="px-6 py-4 text-left">Student</th>{% endif %}
+                <th class="px-6 py-4 text-left">Subject</th><th class="px-6 py-4 text-left">Assignment</th>
+                <th class="px-6 py-4 text-left">Score</th><th class="px-6 py-4 text-left">Grade</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-white/5">
+            {% for g in grades %}
+            <tr>
+                {% if role != 'student' %}<td class="px-6 py-4">{{ g['student_name'] or '—' }}</td>{% endif %}
+                <td class="px-6 py-4">{{ g['subject'] }}</td>
+                <td class="px-6 py-4">{{ g['assignment_name'] or '—' }}</td>
+                <td class="px-6 py-4">{{ g['marks_obtained'] }}/{{ g['total_marks'] }}</td>
+                <td class="px-6 py-4">{{ g['grade_letter'] }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

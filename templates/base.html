@@ -1,251 +1,145 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart Campus</title>
+    <meta name="description" content="Smart Campus Portal — Student, Teacher, and Admin hub">
+    <meta property="og:title" content="Smart Campus Portal">
+    <meta property="og:type" content="website">
+    <title>{% block title %}Smart Campus{% endblock %}</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>tailwind.config = { darkMode: 'class' }</script>
     <style>
-        body {
-            background: #05080f;
-        }
+        body { background: #05080f; }
         .page-bg {
             background-image: linear-gradient(to bottom, rgba(5, 8, 15, 0.86), rgba(5, 8, 15, 0.94)),
                 url("https://images.unsplash.com/photo-1562774053-701939374585?auto=format&fit=crop&w=1800&q=80");
-            background-size: cover;
-            background-attachment: fixed;
-            background-position: center;
+            background-size: cover; background-attachment: fixed; background-position: center;
         }
-        .content-shell table thead {
-            background: #0f172a !important;
-            color: #fff !important;
+        .nav-link.active { background: rgba(255,255,255,0.1); color: #fff; font-weight: 600; border-left: 2px solid #60a5fa; }
+        .content-shell input, .content-shell select, .content-shell textarea {
+            width: 100%; border-radius: 0.75rem; border: 1px solid rgba(148,163,184,0.35);
+            background: rgba(15,23,42,0.7); color: #e2e8f0; padding: 0.75rem 0.9rem;
         }
-        .content-shell table tbody tr:hover {
-            background: rgba(148, 163, 184, 0.08) !important;
-        }
-        .content-shell input,
-        .content-shell select,
-        .content-shell textarea {
-            width: 100%;
-            border-radius: 0.75rem;
-            border: 1px solid rgba(148, 163, 184, 0.35);
-            background: rgba(15, 23, 42, 0.7);
-            color: #e2e8f0;
-            padding: 0.75rem 0.9rem;
-        }
-        .content-shell input::placeholder,
-        .content-shell textarea::placeholder {
-            color: #94a3b8;
+        @media print {
+            aside, nav, .no-print, #sidebar-toggle, .sara-launcher, .sara-panel, #toast-container { display: none !important; }
+            main { margin: 0 !important; padding: 0 !important; }
         }
     </style>
 </head>
-
 <body class="text-slate-100">
     <div class="page-bg min-h-screen">
-        <aside class="fixed left-0 top-0 h-screen w-72 border-r border-white/10 bg-black/75 backdrop-blur">
-            <div>
+        <button id="sidebar-toggle" class="no-print fixed left-4 top-4 z-50 rounded-lg bg-slate-800 p-2 text-white lg:hidden">☰</button>
+        <aside class="fixed left-0 top-0 z-40 flex h-screen w-72 -translate-x-full flex-col border-r border-white/10 bg-black/75 backdrop-blur transition-transform duration-300 lg:translate-x-0">
+            <div class="flex-1 overflow-y-auto">
                 <div class="flex items-center gap-3 border-b border-white/10 px-6 py-6">
                     <div class="flex h-11 w-11 items-center justify-center rounded-full border border-white/40 font-bold">SC</div>
                     <div class="min-w-0 flex-1">
-                        <h1 class="text-lg font-semibold text-white leading-tight">Smart Campus</h1>
-                        <p class="text-xs uppercase tracking-[0.25em] text-slate-400 mt-1">Portal</p>
-                        {% if session.get("role") == "student" %}
-                        <p class="mt-2 inline-block rounded-md border border-blue-400/30 bg-blue-500/10 px-2 py-1 text-[0.65rem] font-semibold uppercase tracking-wide text-blue-200">
-                            Student workspace
-                        </p>
-                        <p class="mt-2 text-[0.7rem] leading-snug text-slate-500">
-                            Official learner gateway for classes, timetables, and resources
-                        </p>
-                        {% elif session.get("role") == "teacher" %}
-                        <p class="mt-2 inline-block rounded-md border border-emerald-400/30 bg-emerald-500/10 px-2 py-1 text-[0.65rem] font-semibold uppercase tracking-wide text-emerald-200">
-                            Faculty workspace
-                        </p>
-                        <p class="mt-2 text-[0.7rem] leading-snug text-slate-500">
-                            Instructional portal for teaching, materials, and academic coordination
-                        </p>
-                        {% elif session.get("role") == "admin" %}
-                        <p class="mt-2 inline-block rounded-md border border-amber-400/30 bg-amber-500/10 px-2 py-1 text-[0.65rem] font-semibold uppercase tracking-wide text-amber-200">
-                            Administration console
-                        </p>
-                        <p class="mt-2 text-[0.7rem] leading-snug text-slate-500">
-                            Institutional oversight, configuration, and reporting
-                        </p>
-                        {% endif %}
+                        <h1 class="text-lg font-semibold text-white">Smart Campus</h1>
+                        <p class="text-xs uppercase tracking-[0.25em] text-slate-400">Portal</p>
                     </div>
                 </div>
+                {% set path = request.path %}
 
                 <nav class="space-y-1 p-4 text-sm text-slate-300">
-                    <p class="mb-3 px-3 text-xs uppercase tracking-[0.25em] text-slate-500">Navigation</p>
-
                     {% if session.get("role") == "student" %}
-                    <a href="/student_dashboard" class="block rounded-lg px-4 py-2 hover:bg-white/10">Dashboard</a>
+                    <a href="/student_dashboard" class="nav-link block rounded-lg px-4 py-2 hover:bg-white/10 {% if path == '/student_dashboard' %}active{% endif %}">Dashboard</a>
+                    {% elif session.get("role") == "teacher" %}
+                    <a href="/teacher_dashboard" class="nav-link block rounded-lg px-4 py-2 hover:bg-white/10 {% if path == '/teacher_dashboard' %}active{% endif %}">Dashboard</a>
+                    {% elif session.get("role", "")|lower == "admin" %}
+                    <a href="/admin_dashboard" class="nav-link block rounded-lg px-4 py-2 hover:bg-white/10 {% if path == '/admin_dashboard' %}active{% endif %}">Dashboard</a>
                     {% endif %}
 
-                    {% if session.get("role") == "teacher" %}
-                    <a href="/teacher_dashboard" class="block rounded-lg px-4 py-2 hover:bg-white/10">Dashboard</a>
+                    <a href="/announcements" class="nav-link block rounded-lg px-4 py-2 hover:bg-white/10 {% if path.startswith('/announcements') %}active{% endif %}">Announcements</a>
+                    <a href="/events" class="nav-link block rounded-lg px-4 py-2 hover:bg-white/10 {% if path.startswith('/events') %}active{% endif %}">Calendar</a>
+                    <a href="/messages" class="nav-link block rounded-lg px-4 py-2 hover:bg-white/10 {% if path.startswith('/messages') %}active{% endif %}">Messages</a>
+                    {% if session.get("role", "")|lower != "admin" %}
+                    <a href="/assignments" class="nav-link block rounded-lg px-4 py-2 hover:bg-white/10 {% if path.startswith('/assignments') %}active{% endif %}">Assignments</a>
                     {% endif %}
+                    <a href="/attendance" class="nav-link block rounded-lg px-4 py-2 hover:bg-white/10 {% if path.startswith('/attendance') %}active{% endif %}">Attendance</a>
+                    <a href="/grades" class="nav-link block rounded-lg px-4 py-2 hover:bg-white/10 {% if path.startswith('/grades') %}active{% endif %}">Grades</a>
 
-                    {% if session.get("role") == "admin" %}
-                    <a href="/admin_dashboard" class="block rounded-lg px-4 py-2 hover:bg-white/10">Dashboard</a>
+                    {% if session.get("role", "")|lower == "admin" %}
                     <p class="mt-4 mb-2 px-3 text-xs uppercase tracking-[0.25em] text-slate-500">Administration</p>
-                    <a href="/admin/users" class="block rounded-lg px-4 py-2 hover:bg-white/10">Manage Users</a>
-                    <a href="/admin/subjects" class="block rounded-lg px-4 py-2 hover:bg-white/10">Manage Subjects</a>
-                    <a href="/admin/notes" class="block rounded-lg px-4 py-2 hover:bg-white/10">Manage Notes</a>
-                    <a href="/admin/schedules" class="block rounded-lg px-4 py-2 hover:bg-white/10">Manage Schedules</a>
-                    <a href="/admin/leaves" class="block rounded-lg px-4 py-2 hover:bg-white/10">Leave Approvals</a>
-
-                    <p class="mt-4 mb-2 px-3 text-xs uppercase tracking-[0.25em] text-slate-500">Reports</p>
-                    <a href="/admin/reports" class="block rounded-lg px-4 py-2 hover:bg-white/10">Exports & Backup</a>
-                    {% endif %}
-
-                    {% if session.get("role") != "admin" %}
+                    <a href="/admin/users" class="nav-link block rounded-lg px-4 py-2 hover:bg-white/10 {% if path.startswith('/admin/users') %}active{% endif %}">Manage Users</a>
+                    <a href="/admin/subjects" class="nav-link block rounded-lg px-4 py-2 hover:bg-white/10">Manage Subjects</a>
+                    <a href="/admin/notes" class="nav-link block rounded-lg px-4 py-2 hover:bg-white/10">Manage Notes</a>
+                    <a href="/admin/schedules" class="nav-link block rounded-lg px-4 py-2 hover:bg-white/10">Manage Schedules</a>
+                    <a href="/admin/leaves" class="nav-link block rounded-lg px-4 py-2 hover:bg-white/10">Leave Approvals</a>
+                    <a href="/admin/reports" class="nav-link block rounded-lg px-4 py-2 hover:bg-white/10">Exports & Backup</a>
+                    {% else %}
+                    <a href="/schedules" class="nav-link block rounded-lg px-4 py-2 hover:bg-white/10 {% if path.startswith('/schedules') %}active{% endif %}">Schedules</a>
+                    <a href="/notes" class="nav-link block rounded-lg px-4 py-2 hover:bg-white/10">Notes</a>
+                    <a href="/subjects" class="nav-link block rounded-lg px-4 py-2 hover:bg-white/10">Subjects</a>
                     {% if session.get("role") == "teacher" %}
-                    <a href="/students" class="block rounded-lg px-4 py-2 hover:bg-white/10">Student Directory</a>
+                    <a href="/students" class="nav-link block rounded-lg px-4 py-2 hover:bg-white/10">Students</a>
                     {% endif %}
-                    <a href="/teachers" class="block rounded-lg px-4 py-2 hover:bg-white/10">Teachers</a>
-                    <a href="/subjects" class="block rounded-lg px-4 py-2 hover:bg-white/10">Subjects</a>
-                    <a href="/notes" class="block rounded-lg px-4 py-2 hover:bg-white/10">Notes</a>
-                    <a href="/schedules" class="block rounded-lg px-4 py-2 hover:bg-white/10">Schedules</a>
-                    <a href="/student_hobbies" class="block rounded-lg px-4 py-2 hover:bg-white/10">Hobbies</a>
-                    <a href="/teacher_leave" class="block rounded-lg px-4 py-2 hover:bg-white/10">Teacher Leave</a>
+                    <a href="/teacher_leave" class="nav-link block rounded-lg px-4 py-2 hover:bg-white/10">Teacher Leave</a>
                     {% endif %}
 
-                    <a href="/profile" class="block rounded-lg px-4 py-2 hover:bg-white/10">Profile</a>
-                    <a href="/logout" class="mt-3 block rounded-lg px-4 py-2 text-red-300 hover:bg-red-500/10">Logout</a>
+                    <a href="/profile" class="nav-link block rounded-lg px-4 py-2 hover:bg-white/10 {% if path == '/profile' %}active{% endif %}">Profile</a>
                 </nav>
             </div>
 
-            <div class="border-t border-white/10 px-6 py-4 text-xs text-slate-400">
-                <span class="mr-1 font-bold text-green-400">●</span> System Online
+            <div class="border-t border-white/10 px-4 py-4">
+                {% if session.get("user_id") %}
+                <div class="flex items-center gap-3">
+                    <div class="flex h-10 w-10 items-center justify-center rounded-full bg-blue-600 text-sm font-bold text-white">
+                        {{ (session.get('username') or 'U')[0]|upper }}
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <p class="truncate text-sm font-semibold text-white">{{ session.get('username') }}</p>
+                        <span class="rounded-md bg-white/10 px-2 py-0.5 text-[10px] uppercase text-slate-300">{{ session.get('role') }}</span>
+                    </div>
+                    <a href="/notifications" class="relative no-print" title="Notifications">
+                        🔔
+                        {% if unread_count > 0 %}
+                        <span class="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white">{{ unread_count }}</span>
+                        {% endif %}
+                    </a>
+                </div>
+                <a href="/logout" class="mt-3 block rounded-lg px-4 py-2 text-center text-sm text-red-300 hover:bg-red-500/10">Logout</a>
+                {% endif %}
             </div>
         </aside>
 
-        <main class="ml-72 min-h-screen p-6 md:p-8">
-            <div class="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-xl border border-white/10 bg-black/45 px-6 py-4">
-                <div>
-                    {% if session.get("role") == "student" %}
-                    <p class="text-xs uppercase tracking-[0.25em] text-blue-300/90">Student experience</p>
-                    <p class="text-lg font-semibold text-white">Learner academic portal</p>
-                    <p class="mt-1 max-w-xl text-xs text-slate-400">You are signed in to the dedicated student environment of Smart Campus University.</p>
-                    {% elif session.get("role") == "teacher" %}
-                    <p class="text-xs uppercase tracking-[0.25em] text-emerald-300/90">Faculty experience</p>
-                    <p class="text-lg font-semibold text-white">Instructional staff portal</p>
-                    <p class="mt-1 max-w-xl text-xs text-slate-400">You are signed in to the faculty workspace for teaching operations and student support.</p>
-                    {% elif session.get("role") == "admin" %}
-                    <p class="text-xs uppercase tracking-[0.25em] text-amber-300/90">Administration</p>
-                    <p class="text-lg font-semibold text-white">Institutional management console</p>
-                    <p class="mt-1 max-w-xl text-xs text-slate-400">Signed-in administrators use this console for users, content, schedules, and compliance exports.</p>
-                    {% else %}
-                    <p class="text-xs uppercase tracking-[0.25em] text-slate-400">Smart Campus</p>
-                    <p class="text-lg font-semibold text-white">Academic management portal</p>
-                    <p class="mt-1 max-w-xl text-xs text-slate-400">Sign in to reach your organisation-specific workspace.</p>
-                    {% endif %}
-                </div>
-                <a href="/" class="shrink-0 rounded-full bg-blue-500 px-5 py-2 text-xs font-semibold text-white hover:bg-blue-400">Public home</a>
-            </div>
-
+        <main class="min-h-screen p-6 md:p-8 lg:ml-72">
             <div class="content-shell rounded-2xl border border-white/10 bg-black/35 p-4 md:p-6">
                 {% block content %}{% endblock %}
             </div>
         </main>
     </div>
 
-    <button id="saraChatToggle" class="fixed bottom-6 right-6 z-50 rounded-full bg-blue-500 px-4 py-3 text-xl text-white shadow-xl hover:bg-blue-400" aria-label="Open chat">
-        💬
-    </button>
-
-    <div id="saraChatBox" class="fixed bottom-24 right-6 z-50 hidden w-[340px] overflow-hidden rounded-2xl border border-white/20 bg-slate-950 shadow-2xl">
-        <div class="flex items-center justify-between border-b border-white/10 bg-slate-900 px-4 py-3">
-            <div>
-                <p class="text-sm font-semibold text-white">💬 Chat Assistant</p>
-                <p class="text-xs text-slate-400">Ask about notes, teachers, or schedules</p>
-            </div>
-            <button id="saraChatClose" class="text-slate-300 hover:text-white">✕</button>
-        </div>
-        <div id="saraMessages" class="h-72 space-y-2 overflow-y-auto bg-slate-950 p-4 text-sm">
-            <div class="rounded-lg bg-slate-800 p-2 text-slate-200">Hello, I am Sara AI. How can I help you today?</div>
-        </div>
-        <div class="flex border-t border-white/10 bg-slate-900 p-2">
-            <input id="saraInput" class="flex-1 rounded-lg border border-white/20 bg-slate-800 px-3 py-2 text-sm text-white outline-none" placeholder="Type your message...">
-            <button id="saraSend" class="ml-2 rounded-lg bg-blue-500 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-400">Send</button>
-        </div>
-    </div>
+    <div id="toast-container" class="fixed bottom-6 left-6 z-50 flex flex-col gap-3"></div>
+    {% include "partials/sara_chat.html" %}
 
     <script>
-        (function () {
-            const chatBox = document.getElementById("saraChatBox");
-            const toggleBtn = document.getElementById("saraChatToggle");
-            const closeBtn = document.getElementById("saraChatClose");
-            const input = document.getElementById("saraInput");
-            const sendBtn = document.getElementById("saraSend");
-            const messages = document.getElementById("saraMessages");
-
-            if (!chatBox || !toggleBtn || !closeBtn || !input || !sendBtn || !messages) return;
-
-            function appendMessage(text, fromUser) {
-                const line = document.createElement("div");
-                line.className = fromUser
-                    ? "ml-8 rounded-lg bg-blue-500 p-2 text-right text-white"
-                    : "mr-8 whitespace-pre-wrap rounded-lg bg-slate-800 p-2 text-slate-200";
-                line.textContent = text;
-                messages.appendChild(line);
-                messages.scrollTop = messages.scrollHeight;
-            }
-
-            function appendButtons(buttons) {
-                if (!Array.isArray(buttons) || buttons.length === 0) return;
-                const wrap = document.createElement("div");
-                wrap.className = "mr-8 mt-1 flex flex-wrap gap-2";
-                buttons.slice(0, 6).forEach((b) => {
-                    const btn = document.createElement("button");
-                    btn.type = "button";
-                    btn.className = "rounded-full border border-white/20 bg-slate-900 px-3 py-1.5 text-xs text-slate-200 hover:bg-white/10";
-                    btn.textContent = b.title || "Option";
-                    btn.addEventListener("click", () => {
-                        input.value = (b.payload || "").replace(/^\/+/, "");
-                        sendMessage();
-                    });
-                    wrap.appendChild(btn);
-                });
-                messages.appendChild(wrap);
-                messages.scrollTop = messages.scrollHeight;
-            }
-
-            async function sendMessage() {
-                const text = input.value.trim();
-                if (!text) return;
-                appendMessage(text, true);
-                input.value = "";
-
-                try {
-                    const response = await fetch("/chat", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                            message: text,
-                            page_path: window.location.pathname,
-                            page_title: document.title
-                        })
-                    });
-                    const data = await response.json();
-                    appendMessage(data.reply || "I could not process that right now.", false);
-                    appendButtons(data.buttons || []);
-                } catch (error) {
-                    appendMessage("Network issue. Please try again.", false);
+        document.getElementById('sidebar-toggle')?.addEventListener('click', () => {
+            document.querySelector('aside')?.classList.toggle('-translate-x-full');
+        });
+        function showToast(message, type) {
+            const colors = { success: 'bg-emerald-600', danger: 'bg-red-600', info: 'bg-blue-600', warning: 'bg-amber-600' };
+            const t = document.createElement('div');
+            t.className = (colors[type] || colors.info) + ' rounded-xl px-5 py-3 text-sm font-medium text-white shadow-xl';
+            t.textContent = message;
+            document.getElementById('toast-container')?.appendChild(t);
+            setTimeout(() => t.remove(), 4000);
+        }
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% for category, message in messages %}
+                showToast({{ message|tojson }}, {{ (category or 'info')|tojson }});
+            {% endfor %}
+        {% endwith %}
+        document.querySelectorAll('form').forEach(f => {
+            f.addEventListener('submit', e => {
+                const btn = f.querySelector('button[type=submit]');
+                if (btn && !btn.dataset.loading) {
+                    btn.dataset.loading = '1';
+                    btn.disabled = true;
+                    btn.innerHTML = '<span class="animate-spin inline-block">⟳</span> Saving...';
                 }
-            }
-
-            toggleBtn.addEventListener("click", function () {
-                chatBox.classList.toggle("hidden");
             });
-            closeBtn.addEventListener("click", function () {
-                chatBox.classList.add("hidden");
-            });
-            sendBtn.addEventListener("click", sendMessage);
-            input.addEventListener("keydown", function (event) {
-                if (event.key === "Enter") sendMessage();
-            });
-        })();
+        });
     </script>
 </body>
 </html>

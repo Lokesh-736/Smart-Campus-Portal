@@ -16,9 +16,10 @@
     {% if session.get("role") == "teacher" %}
     <div class="bg-white p-6 rounded-2xl shadow mb-6 border">
 
-        <h2 class="text-xl font-bold mb-4">Add New Subject</h2>
+        <h2 class="text-xl bg-black text-black mb-4">Add New Subject</h2>
 
         <form method="POST" action="/add_subject" class="grid md:grid-cols-3 gap-4">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
             <!-- SUBJECT NAME -->
             <input name="name" required

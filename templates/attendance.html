@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="mb-6 text-3xl font-semibold text-white">Attendance</h1>
+
+{% if role == 'student' %}
+<div class="mb-6 rounded-2xl bg-gradient-to-br from-emerald-600 to-emerald-800 p-6 text-white">
+    <p class="text-sm uppercase tracking-wide text-emerald-200">Your attendance</p>
+    <p class="mt-2 text-4xl font-bold">{{ attendance_pct }}%</p>
+</div>
+<div class="data-table overflow-x-auto rounded-2xl border border-white/10 bg-slate-900/60">
+    <table class="w-full text-sm">
+        <thead class="border-b border-white/10 text-xs uppercase text-slate-400">
+            <tr><th class="px-6 py-4 text-left">Date</th><th class="px-6 py-4 text-left">Class</th><th class="px-6 py-4 text-left">Status</th></tr>
+        </thead>
+        <tbody class="divide-y divide-white/5">
+            {% for r in records %}
+            <tr><td class="px-6 py-4">{{ r['date'] }}</td><td class="px-6 py-4">{{ r['class_name'] }}</td><td class="px-6 py-4">{{ r['status'] }}</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% elif role == 'admin' %}
+<div class="mb-6 grid gap-4 md:grid-cols-3">
+    {% for status, count in stats.items() %}
+    <div class="rounded-2xl border border-white/10 bg-black/30 p-5"><p class="text-slate-400">{{ status }}</p><p class="text-2xl font-bold text-white">{{ count }}</p></div>
+    {% endfor %}
+</div>
+{% endif %}
+
+{% if role == 'teacher' %}
+<form method="POST" action="/attendance/mark" class="rounded-2xl border border-white/10 bg-black/30 p-6">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="grid gap-4 md:grid-cols-3">
+        <select name="schedule_id" required>
+            <option value="">Select class</option>
+            {% for s in schedules %}<option value="{{ s['id'] }}">{{ s['day'] }} — {{ s['class_name'] }}</option>{% endfor %}
+        </select>
+        <input type="date" name="date" value="{{ '' }}" required>
+    </div>
+    <div class="mt-4 space-y-2">
+        {% for st in students %}
+        <div class="flex items-center gap-3 rounded-lg border border-white/10 p-3">
+            <input type="hidden" name="student_id" value="{{ st['id'] }}">
+            <span class="flex-1 text-white">{{ st['full_name'] or st['username'] }}</span>
+            <select name="status_{{ st['id'] }}">
+                <option value="Present">Present</option>
+                <option value="Absent">Absent</option>
+                <option value="Late">Late</option>
+            </select>
+        </div>
+        {% endfor %}
+    </div>
+    <button type="submit" class="mt-4 rounded-xl bg-blue-500 px-5 py-2 text-sm font-semibold text-white">Save attendance</button>
+</form>
+{% endif %}
+{% endblock %}

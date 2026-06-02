@@ -33,7 +33,7 @@ end
 # Unset irrelevant variables.
 deactivate nondestructive
 
-set -gx VIRTUAL_ENV '/mnt/c/Users/Trijan Ratna Shakya/Desktop/org fyp/venv'
+set -gx VIRTUAL_ENV '/mnt/c/Users/khset/OneDrive/Desktop/org fyp/venv'
 
 set -gx _OLD_VIRTUAL_PATH $PATH
 set -gx PATH "$VIRTUAL_ENV/"bin $PATH

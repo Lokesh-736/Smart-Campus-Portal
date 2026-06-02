@@ -1,4 +1,4 @@
-from flask import send_from_directory, Flask, render_template, request, jsonify, redirect, url_for, session, flash, Response
+from flask import send_from_directory, Flask, render_template, request, jsonify, redirect, url_for, session, flash, Response, g
 import os
 
 # Load local .env (SMTP credentials, etc.) — not committed to git
@@ -18,6 +18,7 @@ import database
 import sqlite3
 import uuid
 from datetime import date, datetime, timedelta
+from functools import wraps
 
 import campus_navigation as campus_nav
 from werkzeug.utils import secure_filename
@@ -27,12 +28,34 @@ import requests
 import re
 
 import email_utils
+from flask_bcrypt import Bcrypt
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+from flask_wtf.csrf import CSRFProtect
+
+from app.chat.ai import ai_sara_reply, build_sara_context
+from app.features.routes import features_bp
+from app.logging_config import setup_logging
+from app.utils import fetch_subject_names, subject_is_valid
+from app.validators import validate_password, validate_username
+
+logger = setup_logging()
 
 app = Flask(__name__)
+app.register_blueprint(features_bp)
+bcrypt = Bcrypt(app)
+csrf = CSRFProtect(app)
+limiter = Limiter(get_remote_address, app=app, default_limits=["200 per day", "50 per hour"])
 
 EMAIL_PATTERN = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
-app.secret_key = os.environ.get("cf956327d34de12ce9111078c0f51592", "smartcampus_secret_key")
+app.secret_key = os.environ.get("SECRET_KEY", "change-me-in-production")
+app.config["WTF_CSRF_ENABLED"] = True
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+app.config["SESSION_COOKIE_SECURE"] = os.environ.get("SESSION_COOKIE_SECURE", "false").lower() == "true"
+app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=8)
 ALLOWED_IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
+MAX_UPLOAD_BYTES = 5 * 1024 * 1024
 
 def require_role(*roles):
     if "user_id" not in session:
@@ -42,13 +65,104 @@ def require_role(*roles):
 
 
 def get_db():
-    conn = sqlite3.connect("database.db")
-    conn.row_factory = sqlite3.Row
-    return conn
+    if "db" not in g:
+        g.db = sqlite3.connect("database.db")
+        g.db.row_factory = sqlite3.Row
+    return g.db
+
+
+@app.teardown_appcontext
+def close_db(error):
+    db = g.pop("db", None)
+    if db is not None:
+        db.close()
+
+
+def login_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if "user_id" not in session:
+            flash("Please log in to continue.", "danger")
+            return redirect(url_for("login"))
+        return f(*args, **kwargs)
+    return decorated
+
+
+def role_required(*roles):
+    def decorator(f):
+        @wraps(f)
+        def decorated(*args, **kwargs):
+            if "user_id" not in session:
+                return redirect(url_for("login"))
+            current = (session.get("role") or "").lower()
+            if current not in {r.lower() for r in roles}:
+                flash("Access denied.", "danger")
+                if current == "admin":
+                    return redirect(url_for("admin_dashboard"))
+                if current == "teacher":
+                    return redirect(url_for("teacher_dashboard"))
+                return redirect(url_for("student_dashboard"))
+            return f(*args, **kwargs)
+        return decorated
+    return decorator
+
+
+def _password_matches(stored: str, plain: str) -> bool:
+    if not stored or not plain:
+        return False
+    if isinstance(stored, str) and stored.startswith("$2"):
+        return bcrypt.check_password_hash(stored, plain)
+    return stored == plain
+
+
+def _upgrade_password_hash(user_id: int, plain: str) -> None:
+    hashed = bcrypt.generate_password_hash(plain).decode("utf-8")
+    conn = get_db()
+    conn.execute("UPDATE users SET password=? WHERE id=?", (hashed, user_id))
+    conn.commit()
 
 
 def allowed_image(filename):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_IMAGE_EXTENSIONS
+
+
+def _validate_saved_image_or_cleanup(saved_path: str) -> bool:
+    try:
+        with open(saved_path, "rb") as f:
+            header = f.read(12)
+    except OSError:
+        return False
+    is_image = (
+        header.startswith(b"\x89PNG")
+        or header[:2] == b"\xff\xd8"
+        or header[:6] in (b"GIF87a", b"GIF89a")
+        or (len(header) >= 12 and header[:4] == b"RIFF" and header[8:12] == b"WEBP")
+    )
+    if not is_image and os.path.exists(saved_path):
+        os.remove(saved_path)
+    return is_image
+
+
+@app.after_request
+def add_security_headers(response):
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "SAMEORIGIN"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    return response
+
+
+@app.context_processor
+def inject_nav_counts():
+    uid = session.get("user_id")
+    role = session.get("role") or ""
+    if not uid:
+        return {"unread_count": 0, "announcements_preview": []}
+    return {
+        "unread_count": database.unread_notification_count(uid) + database.unread_message_count(uid),
+        "announcements_preview": database.get_announcements_for_role(role, 5),
+    }
+
 
 # =========================
 # CHAT (RASA)
@@ -288,11 +402,17 @@ def _rasa_webhook_url() -> str:
 
 
 @app.route("/chat", methods=["POST"])
+@csrf.exempt
 def chat():
     data = request.get_json() or {}
     message = (data.get("message") or "").strip()
     if not message:
         return jsonify({"reply": "Please type a message."}), 400
+
+    conn = get_db()
+    ai_reply = ai_sara_reply(message, build_sara_context(conn, session))
+    if ai_reply:
+        return jsonify({"reply": ai_reply, "buttons": _fallback_chat_quick_actions()})
 
     sender = str(session.get("user_id") or data.get("sender") or "anonymous")
     metadata = {
@@ -355,6 +475,7 @@ def chat():
 
 # Backward-compatible endpoint (old frontend path)
 @app.route("/sara_ai", methods=["POST"])
+@csrf.exempt
 def sara_ai():
     return chat()
 
@@ -377,7 +498,18 @@ def signup():
         password = request.form.get("password") or ""
         role = request.form.get("role") or ""
 
-        if not username or not password or role not in {"student", "teacher"}:
+        ok_user, username_or_err = validate_username(username)
+        if not ok_user:
+            flash(username_or_err, "danger")
+            return render_template("signup.html")
+        username = username_or_err
+
+        ok_pw, pw_or_err = validate_password(password)
+        if not ok_pw:
+            flash(pw_or_err, "danger")
+            return render_template("signup.html")
+
+        if not role in {"student", "teacher"}:
             flash("Please fill in all required fields.", "danger")
             return render_template("signup.html")
 
@@ -419,6 +551,7 @@ def verify_email(token):
 # LOGIN (FIXED)
 # =========================
 @app.route("/login", methods=["GET", "POST"])
+@limiter.limit("10 per minute")
 def login():
     if request.method == "POST":
         username = (request.form.get("username") or "").strip()
@@ -435,31 +568,42 @@ def login():
 
         cursor.execute(
             """
-            SELECT * FROM users 
-            WHERE username=? AND password=? AND role=? AND COALESCE(is_active, 1)=1
+            SELECT * FROM users
+            WHERE username=? AND LOWER(role)=? AND COALESCE(is_active, 1)=1
             """,
-            (username, password, role),
+            (username, role),
         )
 
         user = cursor.fetchone()
-        conn.close()
 
-        if user:
+        if user and _password_matches(user["password"], password):
+            if not (user["password"] or "").startswith("$2"):
+                _upgrade_password_hash(user["id"], password)
             stored_email = (user["email"] or "").strip().lower()
             if stored_email:
                 if stored_email != email:
+                    conn.close()
                     flash("Email does not match this account.", "danger")
                     return render_template("login.html")
                 if user["verification_token"] and not user["email_verified"]:
+                    conn.close()
                     flash("Please verify your email before logging in. Check your inbox.", "danger")
                     return render_template("login.html")
             elif email:
+                conn.close()
                 flash("This account has no email on file. Leave email empty or update your profile.", "danger")
                 return render_template("login.html")
 
             session["user_id"] = user["id"]
             session["username"] = user["username"]
-            session["role"] = user["role"]
+            session["role"] = (user["role"] or role).lower()
+            conn.close()
+            logger.info(
+                "Login success: username=%s role=%s ip=%s",
+                username,
+                session["role"],
+                request.remote_addr,
+            )
 
             if role == "teacher":
                 return redirect("/teacher_dashboard")
@@ -468,15 +612,85 @@ def login():
             else:
                 return redirect("/student_dashboard")
 
+        conn.close()
+        logger.info(
+            "Failed login: username=%s role=%s ip=%s",
+            username,
+            role,
+            request.remote_addr,
+        )
         flash("Invalid credentials", "danger")
 
+    return render_template("login.html")
+
+
+@app.route("/reset-password", methods=["POST"])
+@limiter.limit("5 per minute")
+def reset_password():
+    username = (request.form.get("username") or "").strip()
+    email = (request.form.get("email") or "").strip().lower()
+    password = request.form.get("password") or ""
+    confirm = request.form.get("confirm_password") or ""
+
+    if not username or not email:
+        flash("Username and email are required to reset your password.", "danger")
+        return render_template("login.html", show_reset=True)
+
+    if not EMAIL_PATTERN.match(email):
+        flash("Please enter a valid email address.", "danger")
+        return render_template("login.html", show_reset=True)
+
+    ok_pw, pw_or_err = validate_password(password)
+    if not ok_pw:
+        flash(pw_or_err, "danger")
+        return render_template("login.html", show_reset=True)
+
+    if password != confirm:
+        flash("Passwords do not match.", "danger")
+        return render_template("login.html", show_reset=True)
+
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        SELECT id, email FROM users
+        WHERE username=? AND COALESCE(is_active, 1)=1
+        """,
+        (username,),
+    )
+    user = cursor.fetchone()
+
+    if not user:
+        conn.close()
+        flash("No account found with that username.", "danger")
+        return render_template("login.html", show_reset=True)
+
+    stored_email = (user["email"] or "").strip().lower()
+    if not stored_email or stored_email != email:
+        conn.close()
+        flash("Email does not match this account.", "danger")
+        return render_template("login.html", show_reset=True)
+
+    hashed_password = bcrypt.generate_password_hash(password).decode("utf-8")
+    cursor.execute("UPDATE users SET password=? WHERE id=?", (hashed_password, user["id"]))
+    conn.commit()
+    conn.close()
+    flash("Password updated. You can log in with your new password.", "success")
     return render_template("login.html")
 
 
 # =========================
 # ADMIN LOGIN (PRIVATE)
 # =========================
+@app.route("/admin")
+def admin_entry():
+    if session.get("user_id") and (session.get("role") or "").lower() == "admin":
+        return redirect(url_for("admin_dashboard"))
+    return redirect(url_for("admin_login"))
+
+
 @app.route("/admin_login", methods=["GET", "POST"])
+@limiter.limit("10 per minute")
 def admin_login():
     if request.method == "POST":
         username = (request.form.get("username", "") or "").strip()
@@ -485,18 +699,21 @@ def admin_login():
         conn = get_db()
         cursor = conn.cursor()
         cursor.execute(
-            "SELECT * FROM users WHERE username=? AND password=? AND LOWER(role)='admin' AND COALESCE(is_active, 1)=1",
-            (username, password),
+            "SELECT * FROM users WHERE username=? AND LOWER(role)='admin' AND COALESCE(is_active, 1)=1",
+            (username,),
         )
         user = cursor.fetchone()
-        conn.close()
 
-        if user:
+        if user and _password_matches(user["password"], password):
+            if not (user["password"] or "").startswith("$2"):
+                _upgrade_password_hash(user["id"], password)
             session["user_id"] = user["id"]
             session["username"] = user["username"]
-            session["role"] = user["role"]
+            session["role"] = (user["role"] or "admin").lower()
+            conn.close()
             return redirect("/admin_dashboard")
 
+        conn.close()
         flash("Invalid admin credentials.", "danger")
 
     return render_template("admin_login.html")
@@ -506,15 +723,13 @@ def admin_login():
 # profile
 # =========================
 @app.route("/profile", methods=["GET", "POST"])
+@login_required
 def profile():
-    if "user_id" not in session:
-        return redirect(url_for("login"))
-
     conn = get_db()
     cursor = conn.cursor()
 
     cursor.execute("SELECT name FROM subjects ORDER BY name ASC")
-    subjects = [row["name"] for row in cursor.fetchall() if row["name"]]
+    subjects = fetch_subject_names(cursor)
 
     if request.method == "POST":
         new_username = request.form.get("username", "").strip()
@@ -540,10 +755,26 @@ def profile():
             conn.close()
             return redirect(url_for("profile"))
 
+        cursor.execute("SELECT role FROM users WHERE id=?", (session["user_id"],))
+        user_role = (cursor.fetchone()["role"] or "").lower()
+        if user_role == "teacher":
+            if not teacher_subject:
+                flash("Please select the subject you teach.", "danger")
+                conn.close()
+                return redirect(url_for("profile"))
+            if not subject_is_valid(cursor, teacher_subject):
+                flash("Please select a valid subject from the list.", "danger")
+                conn.close()
+                return redirect(url_for("profile"))
+
         image_path_to_save = None
         if profile_image and profile_image.filename:
             if not allowed_image(profile_image.filename):
                 flash("Invalid image format. Use png, jpg, jpeg, gif, or webp.", "danger")
+                conn.close()
+                return redirect(url_for("profile"))
+            if request.content_length and request.content_length > MAX_UPLOAD_BYTES:
+                flash("File too large. Max 5MB.", "danger")
                 conn.close()
                 return redirect(url_for("profile"))
 
@@ -555,6 +786,11 @@ def profile():
             upload_folder = os.path.join("uploads", "profile_images")
             os.makedirs(upload_folder, exist_ok=True)
             profile_image.save(os.path.join(upload_folder, filename))
+            full_upload_path = os.path.join(upload_folder, filename)
+            if not _validate_saved_image_or_cleanup(full_upload_path):
+                flash("Invalid file type.", "danger")
+                conn.close()
+                return redirect(url_for("profile"))
             image_path_to_save = f"profile_images/{filename}"
 
             if old_image:
@@ -599,92 +835,12 @@ def profile():
     return render_template("profile.html", user=user, subjects=subjects)
 
 # =========================
-# add hobby
-# =========================
-@app.route("/add_hobby", methods=["POST"])
-def add_hobby():
-    if session.get("role") != "student":
-        return redirect(url_for("login"))
-
-    raw = (request.form.get("hobby") or "").strip()
-    if not raw:
-        flash("Please enter at least one hobby/interest.", "danger")
-        return redirect(url_for("student_hobbies"))
-
-    # Allow comma/newline separated entries
-    parts = [p.strip() for p in raw.replace("\n", ",").split(",")]
-    hobbies = []
-    seen = set()
-    for p in parts:
-        if not p:
-            continue
-        norm = p.lower()
-        if norm in seen:
-            continue
-        seen.add(norm)
-        hobbies.append(p[:60])
-
-    if not hobbies:
-        flash("Please enter at least one valid hobby/interest.", "danger")
-        return redirect(url_for("student_hobbies"))
-
-    student_id = session.get("user_id")
-    conn = get_db()
-    cursor = conn.cursor()
-
-    # prevent duplicates per student (case-insensitive)
-    cursor.execute(
-        "SELECT hobby FROM student_hobbies WHERE student_id=?",
-        (student_id,),
-    )
-    existing = {str(r["hobby"]).lower() for r in cursor.fetchall() if r["hobby"]}
-
-    inserted = 0
-    for h in hobbies:
-        if h.lower() in existing:
-            continue
-        cursor.execute(
-            "INSERT INTO student_hobbies (student_id, hobby) VALUES (?, ?)",
-            (student_id, h),
-        )
-        inserted += 1
-
-    conn.commit()
-    conn.close()
-
-    if inserted:
-        flash(f"Added {inserted} interest(s).", "success")
-    else:
-        flash("Those interests were already added.", "danger")
-    return redirect(url_for("student_hobbies"))
-
-
-@app.route("/delete_hobby/<int:hobby_id>", methods=["POST"])
-def delete_hobby(hobby_id):
-    if session.get("role") != "student":
-        return redirect(url_for("login"))
-
-    conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute(
-        "DELETE FROM student_hobbies WHERE id=? AND student_id=?",
-        (hobby_id, session.get("user_id")),
-    )
-    conn.commit()
-    conn.close()
-    flash("Interest removed.", "success")
-    return redirect(url_for("student_hobbies"))
-
-
-# =========================
 # TEACHER NOTES
 # =========================
 @app.route("/add_note", methods=["POST"])
+@role_required("teacher")
 def add_note():
-    if session.get("role") != "teacher":
-        return redirect(url_for("login"))
-
-    subject = request.form.get("subject")
+    subject = (request.form.get("subject") or "").strip()
     title = request.form.get("title")
     file = request.files.get("file")   # ✅ FIXED
 
@@ -694,13 +850,17 @@ def add_note():
         flash("Please upload a file for this note.", "danger")
         return redirect(url_for("notes"))
 
+    conn = get_db()
+    cursor = conn.cursor()
+    if not subject_is_valid(cursor, subject):
+        conn.close()
+        flash("Please select a valid subject from the list.", "danger")
+        return redirect(url_for("notes"))
+
     filename = str(uuid.uuid4()) + "_" + secure_filename(file.filename)
     upload_folder = "uploads"
     os.makedirs(upload_folder, exist_ok=True)
     file.save(os.path.join(upload_folder, filename))
-
-    conn = get_db()
-    cursor = conn.cursor()
 
     cursor.execute("""
         INSERT INTO notes (subject, title, file_path)
@@ -710,7 +870,9 @@ def add_note():
     conn.commit()
     conn.close()
 
-    return redirect(url_for("notes"))   # better UX
+    database.notify_role("student", f"New note uploaded: {title}", "/notes")
+    flash("Note uploaded.", "success")
+    return redirect(url_for("notes"))
 
 
 # =========================
@@ -725,10 +887,9 @@ def uploaded_file(filename):
 # =========================
 # DELETE NOTES
 # =========================
-@app.route("/delete_note/<int:note_id>")
+@app.route("/delete_note/<int:note_id>", methods=["POST"])
+@role_required("teacher")
 def delete_note(note_id):
-    if session.get("role") != "teacher":
-        return redirect(url_for("login"))
 
     conn = get_db()
     cursor = conn.cursor()
@@ -753,9 +914,8 @@ def delete_note(note_id):
 # DASHBOARDS
 # =========================
 @app.route("/student_dashboard")
+@role_required("student")
 def student_dashboard():
-    if session.get("role") != "student":
-        return redirect(url_for("login"))
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM schedules ORDER BY id ASC")
@@ -787,12 +947,8 @@ def student_dashboard():
 # STUDENTS
 # =========================
 @app.route("/students")
+@role_required("teacher")
 def students():
-    role = session.get("role")
-    if role == "student":
-        return redirect(url_for("student_dashboard"))
-    if role != "teacher":
-        return redirect(url_for("login"))
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM users WHERE LOWER(role)=? ORDER BY id ASC", ("student",))
@@ -805,9 +961,8 @@ def students():
 # TEACHERS
 # =========================
 @app.route("/teachers")
+@role_required("student", "teacher")
 def teachers():
-    if session.get("role") not in ["student", "teacher"]:
-        return redirect(url_for("login"))
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM users WHERE LOWER(role)=? ORDER BY id DESC", ("teacher",))
@@ -820,9 +975,8 @@ def teachers():
 # SUBJECTS
 # =========================
 @app.route("/subjects")
+@role_required("student", "teacher")
 def subjects():
-    if session.get("role") not in ["student", "teacher"]:
-        return redirect(url_for("login"))
 
     conn = sqlite3.connect("database.db")
     conn.row_factory = sqlite3.Row
@@ -839,9 +993,8 @@ def subjects():
 # ADD SUBJECT
 # =========================
 @app.route("/add_subject", methods=["POST"])
+@role_required("teacher")
 def add_subject():
-    if session.get("role") != "teacher":
-        return redirect(url_for("login"))
 
     name = request.form.get("name")
     code = request.form.get("code")
@@ -865,26 +1018,25 @@ def add_subject():
 # NOTES
 # =========================
 @app.route("/notes")
+@role_required("student", "teacher")
 def notes():
-    if session.get("role") not in ["student", "teacher"]:
-        return redirect(url_for("login"))
 
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM notes")
     notes = cursor.fetchall()
+    subjects = fetch_subject_names(cursor)
     conn.close()
 
-    return render_template("notes.html", notes=notes)
+    return render_template("notes.html", notes=notes, subjects=subjects)
 
 
 # =========================
 # SCHEDULES
 # =========================
 @app.route("/schedules")
+@role_required("student", "teacher")
 def schedules():
-    if session.get("role") not in ["student", "teacher"]:
-        return redirect(url_for("login"))
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM schedules ORDER BY id DESC")
@@ -896,14 +1048,19 @@ def schedules():
         cursor.execute("SELECT * FROM schedules WHERE id=?", (edit_id,))
         edit_schedule = cursor.fetchone()
 
+    subjects = fetch_subject_names(cursor)
     conn.close()
-    return render_template("schedules.html", schedules=schedules, edit_schedule=edit_schedule)
+    return render_template(
+        "schedules.html",
+        schedules=schedules,
+        edit_schedule=edit_schedule,
+        subjects=subjects,
+    )
 
 
 @app.route("/add_schedule", methods=["POST"])
+@role_required("teacher")
 def add_schedule():
-    if session.get("role") != "teacher":
-        return redirect(url_for("login"))
 
     day = request.form.get("day", "").strip()
     class_name = request.form.get("class_name", "").strip()
@@ -916,6 +1073,11 @@ def add_schedule():
 
     conn = get_db()
     cursor = conn.cursor()
+    if not subject_is_valid(cursor, class_name):
+        conn.close()
+        flash("Please select a valid subject from the list.", "danger")
+        return redirect(url_for("schedules"))
+
     cursor.execute(
         "INSERT INTO schedules (day, class_name, time, room) VALUES (?, ?, ?, ?)",
         (day, class_name, time, room),
@@ -927,9 +1089,8 @@ def add_schedule():
 
 
 @app.route("/update_schedule/<int:schedule_id>", methods=["POST"])
+@role_required("teacher")
 def update_schedule(schedule_id):
-    if session.get("role") != "teacher":
-        return redirect(url_for("login"))
 
     day = request.form.get("day", "").strip()
     class_name = request.form.get("class_name", "").strip()
@@ -942,6 +1103,11 @@ def update_schedule(schedule_id):
 
     conn = get_db()
     cursor = conn.cursor()
+    if not subject_is_valid(cursor, class_name):
+        conn.close()
+        flash("Please select a valid subject from the list.", "danger")
+        return redirect(url_for("schedules", edit_id=schedule_id))
+
     cursor.execute(
         "UPDATE schedules SET day=?, class_name=?, time=?, room=? WHERE id=?",
         (day, class_name, time, room, schedule_id),
@@ -953,9 +1119,8 @@ def update_schedule(schedule_id):
 
 
 @app.route("/delete_schedule/<int:schedule_id>", methods=["POST"])
+@role_required("teacher")
 def delete_schedule(schedule_id):
-    if session.get("role") != "teacher":
-        return redirect(url_for("login"))
 
     conn = get_db()
     cursor = conn.cursor()
@@ -967,77 +1132,11 @@ def delete_schedule(schedule_id):
 
 
 # =========================
-# STUDENT HOBBIES
-# =========================
-@app.route("/student_hobbies")
-def student_hobbies():
-    if session.get("role") not in ["student", "teacher", "admin"]:
-        return redirect(url_for("login"))
-    role = (session.get("role") or "").lower()
-
-    conn = get_db()
-    cursor = conn.cursor()
-
-    my_hobbies = []
-    if role == "student":
-        cursor.execute(
-            """
-            SELECT id, hobby
-            FROM student_hobbies
-            WHERE student_id=?
-            ORDER BY id DESC
-            """,
-            (session.get("user_id"),),
-        )
-        my_hobbies = cursor.fetchall()
-
-    cursor.execute(
-        """
-        SELECT u.username AS student_name, COALESCE(u.full_name, u.username) AS student_display_name,
-               sh.hobby
-        FROM student_hobbies sh
-        JOIN users u ON u.id = sh.student_id
-        ORDER BY u.id DESC, sh.id DESC
-        """
-    )
-    all_rows = cursor.fetchall()
-
-    cursor.execute(
-        """
-        SELECT hobby, COUNT(*) AS c
-        FROM student_hobbies
-        GROUP BY hobby
-        ORDER BY c DESC, hobby ASC
-        LIMIT 8
-        """
-    )
-    top_interests = cursor.fetchall()
-
-    cursor.execute("SELECT COUNT(DISTINCT student_id) AS c FROM student_hobbies")
-    total_students_with_interests = cursor.fetchone()["c"]
-    cursor.execute("SELECT COUNT(*) AS c FROM student_hobbies")
-    total_interest_records = cursor.fetchone()["c"]
-
-    conn.close()
-
-    return render_template(
-        "student_hobbies.html",
-        role=role,
-        my_hobbies=my_hobbies,
-        student_hobbies=all_rows,
-        top_interests=top_interests,
-        total_students_with_interests=total_students_with_interests,
-        total_interest_records=total_interest_records,
-    )
-
-
-# =========================
 # TEACHER LEAVE
 # =========================
 @app.route("/teacher_leave")
+@role_required("teacher", "student")
 def teacher_leave():
-    if session.get("role") not in ["teacher", "student"]:
-        return "Access Denied 🚫 You are not a teacher", 403
 
     conn = get_db()
     cursor = conn.cursor()
@@ -1070,6 +1169,7 @@ def teacher_leave():
         (today,),
     )
     today_absent = cursor.fetchall()
+    subjects = fetch_subject_names(cursor)
     conn.close()
 
     return render_template(
@@ -1077,13 +1177,13 @@ def teacher_leave():
         teacher_leave=teacher_leave,
         today_absent=today_absent,
         today=today,
+        subjects=subjects,
     )
 
 
 @app.route("/apply_teacher_leave", methods=["POST"])
+@role_required("teacher")
 def apply_teacher_leave():
-    if session.get("role") != "teacher":
-        return redirect(url_for("login"))
 
     leave_date = request.form.get("date", "").strip()
     subject = request.form.get("subject", "").strip()
@@ -1093,10 +1193,15 @@ def apply_teacher_leave():
         flash("Date, subject, and reason are required.", "danger")
         return redirect(url_for("teacher_leave"))
 
-    status = "On Leave" if leave_date == date.today().isoformat() else "Scheduled Leave"
-
     conn = get_db()
     cursor = conn.cursor()
+    if not subject_is_valid(cursor, subject):
+        conn.close()
+        flash("Please select a valid subject from the list.", "danger")
+        return redirect(url_for("teacher_leave"))
+
+    status = "On Leave" if leave_date == date.today().isoformat() else "Scheduled Leave"
+
     cursor.execute(
         """
         INSERT INTO teacher_leave (teacher_id, date, subject, reason, status)
@@ -1116,9 +1221,8 @@ def apply_teacher_leave():
 # =========================
 
 @app.route("/teacher_dashboard")
+@role_required("teacher")
 def teacher_dashboard():
-    if session.get("role") != "teacher":
-        return redirect(url_for("login"))
 
     conn = get_db()
     cursor = conn.cursor()
@@ -1139,9 +1243,8 @@ def teacher_dashboard():
 # ADMIN
 # =========================
 @app.route("/admin_dashboard")
+@role_required("admin")
 def admin_dashboard():
-    if not require_role("admin"):
-        return redirect(url_for("login"))
 
     conn = get_db()
     cursor = conn.cursor()
@@ -1179,9 +1282,8 @@ def admin_dashboard():
 
 
 @app.route("/admin/users")
+@role_required("admin")
 def admin_users():
-    if not require_role("admin"):
-        return redirect(url_for("login"))
 
     q = (request.args.get("q") or "").strip()
     role = (request.args.get("role") or "").strip().lower()
@@ -1199,71 +1301,41 @@ def admin_users():
         like = f"%{q}%"
         params.extend([like, like, like])
 
+    page = request.args.get("page", 1, type=int)
+    per_page = 20
+    offset = (page - 1) * per_page
+
     sql = "SELECT * FROM users"
     if where:
         sql += " WHERE " + " AND ".join(where)
-    sql += " ORDER BY id DESC"
+    sql += " ORDER BY id DESC LIMIT ? OFFSET ?"
+    params.extend([per_page, offset])
 
     cursor.execute(sql, params)
     users = cursor.fetchall()
+    count_sql = "SELECT COUNT(*) AS c FROM users"
+    count_params = params[:-2]
+    if where:
+        count_sql += " WHERE " + " AND ".join(where)
+    cursor.execute(count_sql, count_params)
+    total = cursor.fetchone()["c"]
     conn.close()
 
-    return render_template("admin_users.html", users=users, q=q, role=role)
-
-
-@app.route("/admin/users/create", methods=["POST"])
-def admin_create_user():
-    if not require_role("admin"):
-        return redirect(url_for("login"))
-
-    username = (request.form.get("username") or "").strip()
-    password = (request.form.get("password") or "").strip()
-    role = (request.form.get("role") or "").strip().lower()
-
-    if not username or not password or role not in {"student", "teacher", "admin"}:
-        flash("Username, password and valid role are required.", "danger")
-        return redirect(url_for("admin_users"))
-
-    conn = get_db()
-    cursor = conn.cursor()
-    try:
-        cursor.execute(
-            "INSERT INTO users (username, password, role, is_active) VALUES (?, ?, ?, 1)",
-            (username, password, role),
-        )
-        conn.commit()
-        flash("User created.", "success")
-    except Exception:
-        flash("Could not create user (username may already exist).", "danger")
-    finally:
-        conn.close()
-
-    return redirect(url_for("admin_users"))
-
-
-@app.route("/admin/users/<int:user_id>/reset_password", methods=["POST"])
-def admin_reset_password(user_id):
-    if not require_role("admin"):
-        return redirect(url_for("login"))
-
-    new_password = (request.form.get("password") or "").strip()
-    if not new_password:
-        flash("New password is required.", "danger")
-        return redirect(url_for("admin_users"))
-
-    conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute("UPDATE users SET password=? WHERE id=?", (new_password, user_id))
-    conn.commit()
-    conn.close()
-    flash("Password updated.", "success")
-    return redirect(url_for("admin_users"))
+    return render_template(
+        "admin_users.html",
+        users=users,
+        q=q,
+        role=role,
+        page=page,
+        per_page=per_page,
+        total=total,
+        has_next=(offset + per_page) < total,
+    )
 
 
 @app.route("/admin/users/<int:user_id>/toggle_active", methods=["POST"])
+@role_required("admin")
 def admin_toggle_user_active(user_id):
-    if not require_role("admin"):
-        return redirect(url_for("login"))
 
     if user_id == session.get("user_id"):
         flash("You cannot disable your own account.", "danger")
@@ -1287,9 +1359,8 @@ def admin_toggle_user_active(user_id):
 
 
 @app.route("/admin/users/<int:user_id>/role", methods=["POST"])
+@role_required("admin")
 def admin_update_user_role(user_id):
-    if not require_role("admin"):
-        return redirect(url_for("login"))
 
     new_role = (request.form.get("role") or "").strip().lower()
     if new_role not in {"student", "teacher", "admin"}:
@@ -1310,9 +1381,8 @@ def admin_update_user_role(user_id):
 
 
 @app.route("/admin/users/<int:user_id>/delete", methods=["POST"])
+@role_required("admin")
 def admin_delete_user(user_id):
-    if not require_role("admin"):
-        return redirect(url_for("login"))
 
     if user_id == session.get("user_id"):
         flash("You cannot delete your own account.", "danger")
@@ -1328,9 +1398,8 @@ def admin_delete_user(user_id):
 
 
 @app.route("/admin/subjects")
+@role_required("admin")
 def admin_subjects():
-    if not require_role("admin"):
-        return redirect(url_for("login"))
 
     conn = get_db()
     cursor = conn.cursor()
@@ -1341,9 +1410,8 @@ def admin_subjects():
 
 
 @app.route("/admin/subjects/add", methods=["POST"])
+@role_required("admin")
 def admin_add_subject():
-    if not require_role("admin"):
-        return redirect(url_for("login"))
 
     name = (request.form.get("name") or "").strip()
     code = (request.form.get("code") or "").strip()
@@ -1366,9 +1434,8 @@ def admin_add_subject():
 
 
 @app.route("/admin/subjects/<int:subject_row_id>/delete", methods=["POST"])
+@role_required("admin")
 def admin_delete_subject(subject_row_id):
-    if not require_role("admin"):
-        return redirect(url_for("login"))
 
     conn = get_db()
     cursor = conn.cursor()
@@ -1380,9 +1447,8 @@ def admin_delete_subject(subject_row_id):
 
 
 @app.route("/admin/notes")
+@role_required("admin")
 def admin_notes():
-    if not require_role("admin"):
-        return redirect(url_for("login"))
 
     conn = get_db()
     cursor = conn.cursor()
@@ -1393,9 +1459,8 @@ def admin_notes():
 
 
 @app.route("/admin/notes/<int:note_id>/delete", methods=["POST"])
+@role_required("admin")
 def admin_delete_note(note_id):
-    if not require_role("admin"):
-        return redirect(url_for("login"))
 
     conn = get_db()
     cursor = conn.cursor()
@@ -1415,9 +1480,8 @@ def admin_delete_note(note_id):
 
 
 @app.route("/admin/schedules")
+@role_required("admin")
 def admin_schedules():
-    if not require_role("admin"):
-        return redirect(url_for("login"))
 
     conn = get_db()
     cursor = conn.cursor()
@@ -1430,14 +1494,19 @@ def admin_schedules():
         cursor.execute("SELECT * FROM schedules WHERE id=?", (edit_id,))
         edit_schedule = cursor.fetchone()
 
+    subjects = fetch_subject_names(cursor)
     conn.close()
-    return render_template("admin_schedules.html", schedules=schedules, edit_schedule=edit_schedule)
+    return render_template(
+        "admin_schedules.html",
+        schedules=schedules,
+        edit_schedule=edit_schedule,
+        subjects=subjects,
+    )
 
 
 @app.route("/admin/schedules/add", methods=["POST"])
+@role_required("admin")
 def admin_add_schedule():
-    if not require_role("admin"):
-        return redirect(url_for("login"))
 
     day = request.form.get("day", "").strip()
     class_name = request.form.get("class_name", "").strip()
@@ -1450,6 +1519,11 @@ def admin_add_schedule():
 
     conn = get_db()
     cursor = conn.cursor()
+    if not subject_is_valid(cursor, class_name):
+        conn.close()
+        flash("Please select a valid subject from the list.", "danger")
+        return redirect(url_for("admin_schedules"))
+
     cursor.execute(
         "INSERT INTO schedules (day, class_name, time, room) VALUES (?, ?, ?, ?)",
         (day, class_name, time, room),
@@ -1461,9 +1535,8 @@ def admin_add_schedule():
 
 
 @app.route("/admin/schedules/<int:schedule_id>/update", methods=["POST"])
+@role_required("admin")
 def admin_update_schedule(schedule_id):
-    if not require_role("admin"):
-        return redirect(url_for("login"))
 
     day = request.form.get("day", "").strip()
     class_name = request.form.get("class_name", "").strip()
@@ -1476,6 +1549,11 @@ def admin_update_schedule(schedule_id):
 
     conn = get_db()
     cursor = conn.cursor()
+    if not subject_is_valid(cursor, class_name):
+        conn.close()
+        flash("Please select a valid subject from the list.", "danger")
+        return redirect(url_for("admin_schedules", edit_id=schedule_id))
+
     cursor.execute(
         "UPDATE schedules SET day=?, class_name=?, time=?, room=? WHERE id=?",
         (day, class_name, time, room, schedule_id),
@@ -1487,9 +1565,8 @@ def admin_update_schedule(schedule_id):
 
 
 @app.route("/admin/schedules/<int:schedule_id>/delete", methods=["POST"])
+@role_required("admin")
 def admin_delete_schedule(schedule_id):
-    if not require_role("admin"):
-        return redirect(url_for("login"))
 
     conn = get_db()
     cursor = conn.cursor()
@@ -1501,9 +1578,8 @@ def admin_delete_schedule(schedule_id):
 
 
 @app.route("/admin/leaves")
+@role_required("admin")
 def admin_leaves():
-    if not require_role("admin"):
-        return redirect(url_for("login"))
 
     conn = get_db()
     cursor = conn.cursor()
@@ -1521,9 +1597,8 @@ def admin_leaves():
 
 
 @app.route("/admin/leaves/<int:leave_id>/status", methods=["POST"])
+@role_required("admin")
 def admin_update_leave_status(leave_id):
-    if not require_role("admin"):
-        return redirect(url_for("login"))
 
     status = (request.form.get("status") or "").strip()
     if status not in {"Approved", "Rejected", "Pending", "On Leave", "Scheduled Leave"}:
@@ -1532,17 +1607,24 @@ def admin_update_leave_status(leave_id):
 
     conn = get_db()
     cursor = conn.cursor()
+    cursor.execute("SELECT teacher_id FROM teacher_leave WHERE id=?", (leave_id,))
+    leave_row = cursor.fetchone()
     cursor.execute("UPDATE teacher_leave SET status=? WHERE id=?", (status, leave_id))
     conn.commit()
+    if leave_row:
+        database.create_notification(
+            leave_row["teacher_id"],
+            f"Leave request {status}",
+            "/teacher_leave",
+        )
     conn.close()
     flash("Leave status updated.", "success")
     return redirect(url_for("admin_leaves"))
 
 
 @app.route("/admin/reports")
+@role_required("admin")
 def admin_reports():
-    if not require_role("admin"):
-        return redirect(url_for("login"))
     return render_template("admin_reports.html")
 
 
@@ -1560,9 +1642,8 @@ def _csv_response(filename: str, header: list[str], rows: list[list[str]]):
 
 
 @app.route("/admin/reports/users.csv")
+@role_required("admin")
 def admin_export_users():
-    if not require_role("admin"):
-        return redirect(url_for("login"))
 
     conn = get_db()
     cursor = conn.cursor()
@@ -1599,9 +1680,8 @@ def admin_export_users():
 
 
 @app.route("/admin/reports/subjects.csv")
+@role_required("admin")
 def admin_export_subjects():
-    if not require_role("admin"):
-        return redirect(url_for("login"))
 
     conn = get_db()
     cursor = conn.cursor()
@@ -1614,9 +1694,8 @@ def admin_export_subjects():
 
 
 @app.route("/admin/backup")
+@role_required("admin")
 def admin_backup():
-    if not require_role("admin"):
-        return redirect(url_for("login"))
 
     path = "database.db"
     if not os.path.exists(path):
@@ -1645,12 +1724,69 @@ def logout():
 # INIT DB
 # =========================
 @app.route("/init-db")
+@role_required("admin")
 def init_db():
     database.create_tables()
     return "Database created!"
 
 
-if __name__ == "__main__":
-    database.create_tables()
+@app.route("/robots.txt")
+def robots():
+    return Response("User-agent: *\nDisallow: /admin\nDisallow: /api/", mimetype="text/plain")
 
+
+@app.route("/health")
+def health():
+    return jsonify({"status": "ok", "timestamp": datetime.now().isoformat()})
+
+
+@app.route("/schedules/export/pdf")
+@role_required("student", "teacher", "admin")
+def export_schedule_pdf():
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT day, class_name, time, room FROM schedules ORDER BY day, time")
+    rows = cursor.fetchall()
+    conn.close()
+
+    try:
+        from reportlab.lib.pagesizes import letter
+        from reportlab.pdfgen import canvas
+
+        buf = io.BytesIO()
+        c = canvas.Canvas(buf, pagesize=letter)
+        c.setFont("Helvetica-Bold", 16)
+        c.drawString(50, 750, "Smart Campus — Timetable")
+        c.setFont("Helvetica", 11)
+        y = 720
+        for r in rows:
+            line = f"{r['day']}: {r['class_name']} | {r['time']} | {r['room']}"
+            c.drawString(50, y, line)
+            y -= 18
+            if y < 50:
+                c.showPage()
+                y = 750
+        c.save()
+        buf.seek(0)
+        return Response(buf.read(), mimetype="application/pdf", headers={
+            "Content-Disposition": "attachment; filename=schedule.pdf"
+        })
+    except ImportError:
+        flash("PDF export unavailable. Install reportlab.", "danger")
+        return redirect(url_for("schedules"))
+
+
+@app.errorhandler(404)
+def not_found(e):
+    return render_template("404.html"), 404
+
+
+@app.errorhandler(500)
+def server_error(e):
+    return render_template("500.html"), 500
+
+
+database.create_tables()
+
+if __name__ == "__main__":
     app.run(debug=True)

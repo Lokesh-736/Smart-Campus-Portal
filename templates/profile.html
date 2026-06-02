@@ -32,6 +32,7 @@
             </div>
 
             <form method="POST" enctype="multipart/form-data" class="space-y-4 rounded-xl border border-white/10 bg-black/35 p-6 md:col-span-2">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div>
                     <label class="mb-1 block text-sm text-slate-300">Username</label>
                     <input type="text" name="username" value="{{ user['username'] }}" required>
@@ -57,18 +58,21 @@
                 {% if user['role'] == 'teacher' %}
                 <div>
                     <label class="mb-1 block text-sm text-slate-300">Subject You Teach</label>
-                    {% if subjects and subjects|length > 0 %}
-                        <select name="teacher_subject" class="w-full rounded-lg border border-white/10 bg-black/35 px-3 py-2 text-slate-100">
-                            <option value="">Select a subject</option>
-                            {% for subj in subjects %}
-                                <option value="{{ subj }}" {% if (user['teacher_subject'] or '') == subj %}selected{% endif %}>
-                                    {{ subj }}
-                                </option>
-                            {% endfor %}
-                        </select>
-                        <p class="mt-1 text-xs text-slate-500">If your subject is missing, ask admin/teacher to add it in Subjects.</p>
+                    <select name="teacher_subject" required class="w-full rounded-lg border border-white/10 bg-black/35 px-3 py-2 text-slate-100">
+                        <option value="">Select a subject</option>
+                        {% for subj in subjects %}
+                            <option value="{{ subj }}" {% if (user['teacher_subject'] or '') == subj %}selected{% endif %}>
+                                {{ subj }}
+                            </option>
+                        {% endfor %}
+                        {% if user['teacher_subject'] and user['teacher_subject'] not in subjects %}
+                        <option value="{{ user['teacher_subject'] }}" selected>{{ user['teacher_subject'] }}</option>
+                        {% endif %}
+                    </select>
+                    {% if not subjects %}
+                    <p class="mt-1 text-xs text-amber-300">No subjects found. Ask an admin to add subjects first.</p>
                     {% else %}
-                        <input type="text" name="teacher_subject" value="{{ user['teacher_subject'] or '' }}" placeholder="e.g. Data Science">
+                    <p class="mt-1 text-xs text-slate-500">If your subject is missing, ask admin to add it under Manage Subjects.</p>
                     {% endif %}
                 </div>
                 {% endif %}
@@ -81,7 +85,7 @@
         </div>
 
         <div class="mt-6 flex gap-3">
-            <a href="{{ '/admin_dashboard' if user['role'] == 'admin' else ('/teacher_dashboard' if user['role'] == 'teacher' else '/student_dashboard') }}" class="rounded-full border border-white/20 px-5 py-2 text-sm text-slate-200 hover:bg-white hover:text-black">Dashboard</a>
+            <a href="{{ '/admin_dashboard' if user['role']|lower == 'admin' else ('/teacher_dashboard' if user['role']|lower == 'teacher' else '/student_dashboard') }}" class="rounded-full border border-white/20 px-5 py-2 text-sm text-slate-200 hover:bg-white hover:text-black">Dashboard</a>
             <a href="/logout" class="rounded-full border border-red-300/40 px-5 py-2 text-sm text-red-300 hover:bg-red-500/10">Logout</a>
         </div>
     </div>

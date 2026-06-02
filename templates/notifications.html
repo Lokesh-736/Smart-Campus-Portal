@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="mb-6 text-3xl font-semibold text-white">Notifications</h1>
+<div class="space-y-3">
+    {% for n in notifications %}
+    <div class="rounded-2xl border border-white/10 bg-black/30 p-4">
+        <p class="text-white">{{ n['message'] }}</p>
+        <p class="mt-1 text-xs text-slate-500">{{ n['created_at'] }}</p>
+        {% if n['link'] %}<a href="{{ n['link'] }}" class="mt-2 inline-block text-sm text-blue-300 hover:text-blue-200">Open</a>{% endif %}
+    </div>
+    {% else %}
+    <p class="text-slate-400">No notifications.</p>
+    {% endfor %}
+</div>
+{% endblock %}

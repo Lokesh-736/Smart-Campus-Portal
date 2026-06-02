@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="mb-6 text-3xl font-semibold text-white">Assignments</h1>
+
+{% if role == 'teacher' %}
+<form method="POST" action="/assignments/create" class="mb-6 rounded-2xl border border-white/10 bg-black/30 p-6 space-y-3">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input name="title" placeholder="Title" required>
+    <select name="subject" required>
+        <option value="">Select subject</option>
+        {% for s in subjects %}
+        <option value="{{ s }}">{{ s }}</option>
+        {% endfor %}
+    </select>
+    {% if not subjects %}
+    <p class="text-xs text-amber-300">No subjects found. Ask an admin to add subjects first.</p>
+    {% endif %}
+    <input type="date" name="due_date" required>
+    <textarea name="description" rows="3" placeholder="Description"></textarea>
+    <button type="submit" class="rounded-xl bg-blue-500 px-5 py-2 text-sm font-semibold text-white">Create assignment</button>
+</form>
+{% endif %}
+
+<div class="data-table overflow-x-auto rounded-2xl border border-white/10 bg-slate-900/60">
+    <table class="w-full text-sm">
+        <thead class="border-b border-white/10 text-xs uppercase text-slate-400">
+            <tr><th class="px-6 py-4 text-left">Title</th><th class="px-6 py-4 text-left">Subject</th><th class="px-6 py-4 text-left">Due</th><th class="px-6 py-4 text-left">Action</th></tr>
+        </thead>
+        <tbody class="divide-y divide-white/5">
+            {% for a in assignments %}
+            <tr>
+                <td class="px-6 py-4 text-white">{{ a['title'] }}</td>
+                <td class="px-6 py-4">{{ a['subject'] or '—' }}</td>
+                <td class="px-6 py-4">{{ a['due_date'] }}</td>
+                <td class="px-6 py-4">
+                    {% if role == 'student' %}
+                    {% if submissions.get(a['id']) %}
+                    <span class="text-emerald-300">Submitted</span>
+                    {% else %}
+                    <form method="POST" action="/assignments/{{ a['id'] }}/submit" enctype="multipart/form-data" class="flex gap-2">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="file" name="file" required class="text-xs">
+                        <button type="submit" class="rounded-lg bg-blue-500 px-3 py-1 text-xs text-white">Submit</button>
+                    </form>
+                    {% endif %}
+                    {% else %}
+                    <span class="text-slate-400">{{ a['teacher_name'] or 'Staff' }}</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

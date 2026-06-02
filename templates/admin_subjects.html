@@ -29,6 +29,7 @@
             <div class="rounded-2xl border border-white/10 bg-black/30 p-6 md:col-span-1">
                 <h2 class="text-lg font-semibold text-white">Add Subject</h2>
                 <form method="POST" action="/admin/subjects/add" class="mt-4 space-y-3">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <input type="text" name="name" placeholder="Subject name (e.g. Data Structures)" required>
                     <input type="text" name="code" placeholder="Code (optional)">
                     <input type="text" name="subject_id" placeholder="Subject ID (optional)">
@@ -54,6 +55,7 @@
                             <td class="px-6 py-4 text-slate-200">{{ s["subject_id"] or "—" }}</td>
                             <td class="px-6 py-4">
                                 <form method="POST" action="/admin/subjects/{{ s['id'] }}/delete" onsubmit="return confirm('Delete this subject?');">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                     <button type="submit" class="rounded-full border border-red-300/40 px-4 py-2 text-xs font-semibold text-red-300 hover:bg-red-500/10">Delete</button>
                                 </form>
                             </td>

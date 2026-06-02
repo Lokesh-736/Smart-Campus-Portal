@@ -48,8 +48,17 @@
     <div class="bg-white border border-slate-200 rounded-xl shadow-sm p-6 mb-8">
         <h2 class="text-xl font-semibold text-[#0B1F3A] mb-4">Apply for Leave</h2>
         <form method="POST" action="/apply_teacher_leave" class="grid gap-4 md:grid-cols-3">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="date" name="date" required class="p-3 border rounded-lg">
-            <input type="text" name="subject" required placeholder="Subject you teach" class="p-3 border rounded-lg">
+            <select name="subject" required class="p-3 border rounded-lg">
+                <option value="">Select subject</option>
+                {% for s in subjects %}
+                <option value="{{ s }}">{{ s }}</option>
+                {% endfor %}
+            </select>
+            {% if not subjects %}
+            <p class="md:col-span-3 text-sm text-amber-700">No subjects found. Ask an admin to add subjects first.</p>
+            {% endif %}
             <input type="text" name="reason" required placeholder="Reason for leave" class="p-3 border rounded-lg">
             <button class="md:col-span-3 bg-[#0B1F3A] text-white px-5 py-2 rounded-lg font-semibold hover:bg-[#173765]">
                 Submit Leave Application

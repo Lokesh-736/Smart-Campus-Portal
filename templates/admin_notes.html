@@ -51,6 +51,7 @@
             </td>
             <td class="px-6 py-4">
               <form method="POST" action="/admin/notes/{{ n['id'] }}/delete" onsubmit="return confirm('Delete this note?');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit" class="rounded-full border border-red-300/40 px-4 py-2 text-xs font-semibold text-red-300 hover:bg-red-500/10">Delete</button>
               </form>
             </td>

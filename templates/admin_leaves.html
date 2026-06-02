@@ -49,6 +49,7 @@
             </td>
             <td class="px-6 py-4">
               <form method="POST" action="/admin/leaves/{{ l['id'] }}/status" class="flex flex-col gap-2 md:flex-row md:items-center">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <select name="status" class="w-44">
                   {% set st = (l["status"] or "") %}
                   <option value="Pending" {% if st == 'Pending' %}selected{% endif %}>Pending</option>
