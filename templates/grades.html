@@ -9,7 +9,7 @@
 </div>
 {% endif %}
 
-{% if role in ['teacher', 'admin'] %}
+{% if role == 'teacher' %}
 <form method="POST" action="/grades/add" class="mb-6 rounded-2xl border border-white/10 bg-black/30 p-6 space-y-3">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <select name="student_id" required>
@@ -30,9 +30,6 @@
     <input name="total_marks" type="number" step="0.01" placeholder="Total marks" required>
     <button type="submit" class="rounded-xl bg-blue-500 px-5 py-2 text-sm font-semibold text-white">Record grade</button>
 </form>
-{% if role == 'admin' %}
-<a href="/admin/grades/export.csv" class="mb-4 inline-block text-sm text-blue-300">Export CSV</a>
-{% endif %}
 {% endif %}
 
 <div class="data-table overflow-x-auto rounded-2xl border border-white/10 bg-slate-900/60">

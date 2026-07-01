@@ -1,10 +1,8 @@
-import csv
-import io
 import os
 import uuid
 from datetime import date, datetime
 
-from flask import Blueprint, flash, redirect, render_template, request, Response, session, url_for
+from flask import Blueprint, flash, redirect, render_template, request, session, url_for
 from werkzeug.utils import secure_filename
 
 import database
@@ -350,7 +348,7 @@ def notifications():
 
 
 @features_bp.route("/grades")
-@role_required("student", "teacher", "admin")
+@role_required("student", "teacher")
 def grades():
     role = (session.get("role") or "").lower()
     conn = _get_db()
@@ -388,7 +386,7 @@ def grades():
 
 
 @features_bp.route("/grades/add", methods=["POST"])
-@role_required("teacher", "admin")
+@role_required("teacher")
 def add_grade():
     student_id = request.form.get("student_id", type=int)
     subject = (request.form.get("subject") or "").strip()
@@ -416,30 +414,3 @@ def add_grade():
     database.create_notification(student_id, f"Grade posted for {subject}", "/grades")
     flash("Grade recorded.", "success")
     return redirect(url_for("features.grades"))
-
-
-@features_bp.route("/admin/grades/export.csv")
-@role_required("admin")
-def export_grades_csv():
-    conn = _get_db()
-    cursor = conn.cursor()
-    cursor.execute(
-        """
-        SELECT g.id, u.username, g.subject, g.assignment_name, g.marks_obtained, g.total_marks, g.grade_letter, g.recorded_at
-        FROM grades g JOIN users u ON u.id = g.student_id
-        ORDER BY g.id
-        """
-    )
-    rows = cursor.fetchall()
-    buf = io.StringIO()
-    writer = csv.writer(buf)
-    writer.writerow(["id", "student", "subject", "assignment", "marks", "total", "grade", "recorded_at"])
-    for r in rows:
-        writer.writerow(
-            [r["id"], r["username"], r["subject"], r["assignment_name"], r["marks_obtained"], r["total_marks"], r["grade_letter"], r["recorded_at"]]
-        )
-    return Response(
-        buf.getvalue(),
-        mimetype="text/csv",
-        headers={"Content-Disposition": "attachment; filename=grades.csv"},
-    )

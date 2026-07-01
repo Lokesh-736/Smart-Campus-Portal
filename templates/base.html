@@ -57,7 +57,9 @@
                     <a href="/assignments" class="nav-link block rounded-lg px-4 py-2 hover:bg-white/10 {% if path.startswith('/assignments') %}active{% endif %}">Assignments</a>
                     {% endif %}
                     <a href="/attendance" class="nav-link block rounded-lg px-4 py-2 hover:bg-white/10 {% if path.startswith('/attendance') %}active{% endif %}">Attendance</a>
+                    {% if session.get("role", "")|lower != "admin" %}
                     <a href="/grades" class="nav-link block rounded-lg px-4 py-2 hover:bg-white/10 {% if path.startswith('/grades') %}active{% endif %}">Grades</a>
+                    {% endif %}
 
                     {% if session.get("role", "")|lower == "admin" %}
                     <p class="mt-4 mb-2 px-3 text-xs uppercase tracking-[0.25em] text-slate-500">Administration</p>
