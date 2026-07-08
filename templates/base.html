@@ -127,11 +127,10 @@
             document.getElementById('toast-container')?.appendChild(t);
             setTimeout(() => t.remove(), 4000);
         }
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% for category, message in messages %}
-                showToast({{ message|tojson }}, {{ (category or 'info')|tojson }});
-            {% endfor %}
-        {% endwith %}
+        const flashMessages = {{ get_flashed_messages(with_categories=true)|tojson }};
+        flashMessages.forEach(([category, message]) => {
+            showToast(message, category || 'info');
+        });
         document.querySelectorAll('form').forEach(f => {
             f.addEventListener('submit', e => {
                 const btn = f.querySelector('button[type=submit]');
