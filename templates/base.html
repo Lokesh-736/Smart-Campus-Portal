@@ -115,6 +115,7 @@
     <div id="toast-container" class="fixed bottom-6 left-6 z-50 flex flex-col gap-3"></div>
     {% include "partials/sara_chat.html" %}
 
+    <script type="application/json" id="flash-messages">{{ get_flashed_messages(with_categories=true)|tojson }}</script>
     <script>
         document.getElementById('sidebar-toggle')?.addEventListener('click', () => {
             document.querySelector('aside')?.classList.toggle('-translate-x-full');
@@ -127,7 +128,7 @@
             document.getElementById('toast-container')?.appendChild(t);
             setTimeout(() => t.remove(), 4000);
         }
-        const flashMessages = {{ get_flashed_messages(with_categories=true)|tojson }};
+        const flashMessages = JSON.parse(document.getElementById('flash-messages').textContent);
         flashMessages.forEach(([category, message]) => {
             showToast(message, category || 'info');
         });
