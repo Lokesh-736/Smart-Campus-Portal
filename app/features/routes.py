@@ -311,7 +311,7 @@ def create_event():
     title = (request.form.get("title") or "").strip()
     description = (request.form.get("description") or "").strip()
     event_date = (request.form.get("event_date") or "").strip()
-    event_type = (request.form.get("event_type") or "activity").strip()
+    event_type = (request.form.get("event_type") or "holiday").strip()
     if not title or not event_date:
         flash("Title and date are required.", "danger")
         return redirect(url_for("features.events"))

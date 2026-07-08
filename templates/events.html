@@ -7,11 +7,6 @@
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <input name="title" placeholder="Event title" required>
     <input type="date" name="event_date" required>
-    <select name="event_type">
-        <option value="holiday">Holiday</option>
-        <option value="exam">Exam</option>
-        <option value="activity">Activity</option>
-    </select>
     <textarea name="description" rows="2" placeholder="Description"></textarea>
     <button type="submit" class="rounded-xl bg-blue-500 px-5 py-2 text-sm font-semibold text-white">Add event</button>
 </form>
