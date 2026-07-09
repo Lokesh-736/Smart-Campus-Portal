@@ -314,8 +314,16 @@ def events():
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM events ORDER BY event_date ASC")
     rows = cursor.fetchall()
+    events_data = [
+        {
+            "title": r["title"],
+            "start": r["event_date"],
+            "extendedProps": {"type": r["event_type"]},
+        }
+        for r in rows
+    ]
     role = (session.get("role") or "").lower()
-    return render_template("events.html", events=rows, role=role)
+    return render_template("events.html", events_json=events_data, role=role)
 
 
 @features_bp.route("/events/create", methods=["POST"])

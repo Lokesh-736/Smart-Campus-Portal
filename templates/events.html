@@ -15,17 +15,15 @@
 <div id="calendar" class="rounded-2xl border border-white/10 bg-black/30 p-4"></div>
 <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
+<script type="application/json" id="calendar-events-data">{{ events_json|tojson }}</script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
   const el = document.getElementById('calendar');
+  const eventsData = JSON.parse(document.getElementById('calendar-events-data').textContent);
   const cal = new FullCalendar.Calendar(el, {
     initialView: 'dayGridMonth',
     height: 500,
-    events: [
-      {% for e in events %}
-      { title: {{ e['title']|tojson }}, start: {{ e['event_date']|tojson }}, extendedProps: { type: {{ e['event_type']|tojson }} } },
-      {% endfor %}
-    ],
+    events: eventsData,
     eventDidMount: function(info) {
       const t = info.event.extendedProps.type;
       if (t === 'holiday') info.el.style.backgroundColor = '#dc2626';
