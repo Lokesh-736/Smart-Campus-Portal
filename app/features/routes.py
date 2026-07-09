@@ -137,18 +137,31 @@ def assignments():
     )
     items = cursor.fetchall()
     submissions = []
+    submissions_by_assignment = {}
     if role == "student":
         cursor.execute(
             "SELECT * FROM submissions WHERE student_id=?",
             (session["user_id"],),
         )
         submissions = {r["assignment_id"]: r for r in cursor.fetchall()}
+    elif role == "teacher":
+        cursor.execute(
+            """
+            SELECT s.*, u.username AS student_username, u.full_name AS student_name
+            FROM submissions s
+            LEFT JOIN users u ON u.id = s.student_id
+            ORDER BY s.submitted_at DESC
+            """
+        )
+        for r in cursor.fetchall():
+            submissions_by_assignment.setdefault(r["assignment_id"], []).append(r)
     subjects = fetch_subject_names(cursor)
     return render_template(
         "assignments.html",
         assignments=items,
         role=role,
         submissions=submissions,
+        submissions_by_assignment=submissions_by_assignment,
         subjects=subjects,
     )
 

@@ -24,7 +24,13 @@
 <div class="data-table overflow-x-auto rounded-2xl border border-white/10 bg-slate-900/60">
     <table class="w-full text-sm">
         <thead class="border-b border-white/10 text-xs uppercase text-slate-400">
-            <tr><th class="px-6 py-4 text-left">Title</th><th class="px-6 py-4 text-left">Subject</th><th class="px-6 py-4 text-left">Due</th><th class="px-6 py-4 text-left">Action</th></tr>
+            <tr>
+                <th class="px-6 py-4 text-left">Title</th>
+                <th class="px-6 py-4 text-left">Subject</th>
+                <th class="px-6 py-4 text-left">Due</th>
+                <th class="px-6 py-4 text-left">Action</th>
+                {% if role == 'teacher' %}<th class="px-6 py-4 text-left">Submissions</th>{% endif %}
+            </tr>
         </thead>
         <tbody class="divide-y divide-white/5">
             {% for a in assignments %}
@@ -47,6 +53,26 @@
                     <span class="text-slate-400">{{ a['teacher_name'] or 'Staff' }}</span>
                     {% endif %}
                 </td>
+                {% if role == 'teacher' %}
+                <td class="px-6 py-4">
+                    {% set subs = submissions_by_assignment.get(a['id']) %}
+                    {% if subs %}
+                    <div class="space-y-3">
+                        {% for s in subs %}
+                        <div class="rounded-xl border border-white/10 bg-black/20 p-3 text-xs">
+                            <div class="mb-1 flex items-center justify-between gap-3">
+                                <span class="font-medium text-white">{{ s['student_name'] or s['student_username'] or 'Student #' ~ s['student_id'] }}</span>
+                                <span class="text-slate-400">{{ s['submitted_at'] }}</span>
+                            </div>
+                            <a href="/uploads/{{ s['file_path'] }}" target="_blank" class="text-blue-400 underline">Download submission</a>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <span class="text-slate-500">No submissions yet</span>
+                    {% endif %}
+                </td>
+                {% endif %}
             </tr>
             {% endfor %}
         </tbody>
